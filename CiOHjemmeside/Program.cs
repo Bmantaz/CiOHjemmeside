@@ -24,6 +24,9 @@ builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 // 4. Registrer vores services/repositories. 
 // Scoped er passende for Blazor Server, da det sikrer en ny instans pr. bruger-session/request.
 builder.Services.AddScoped<IConcertService, ConcertService>();
+builder.Services.AddScoped<IMerchandiseService, MerchandiseService>();
+// NY REGISTRERING TILFØJET:
+builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 
 // --- SLUT: Konfiguration af Data-lag (Fase 1) ---
 
