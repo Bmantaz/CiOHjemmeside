@@ -11,7 +11,10 @@
         <div class="nav-links">
             <NavLink class="nav-link" href="dashboard">Kalender</NavLink>
             <NavLink class="nav-link" href="sales">Sales</NavLink>
-            <NavLink class="nav-link" href="users">Brugerstyring</NavLink>
+
+            <AuthorizeView Roles="Admin">
+                <NavLink class="nav-link" href="users">Brugerstyring</NavLink>
+            </AuthorizeView>
 
             <a class="nav-link logout" href="/">Log Ud</a>
         </div>

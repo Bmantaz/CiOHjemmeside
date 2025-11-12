@@ -11,6 +11,23 @@
         color: #fff;
     }
 
+/* TILFØJET: Knap til at oprette event */
+.btn-add-event {
+    background-color: #198754; /* Grøn */
+    color: #fff;
+    border: none;
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    cursor: pointer;
+}
+
+    .btn-add-event:hover {
+        background-color: #157347;
+    }
+
 .btn-nav {
     background: none;
     border: 1px solid #555;
@@ -87,7 +104,9 @@
     gap: 4px;
 }
 
+/* OPDATERET: Nu er det en <button> */
 .event-chip {
+    width: 100%;
     padding: 2px 6px;
     font-size: 0.75rem;
     border-radius: 4px;
@@ -97,7 +116,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-family: Arial, Helvetica, sans-serif;
+    border: none;
+    text-align: left;
+    cursor: pointer;
 }
+
+    .event-chip:hover {
+        opacity: 0.8;
+    }
 
     /* Farver baseret på EventType */
     .event-chip.practice {
@@ -114,4 +140,150 @@
 
     .event-chip.other {
         background-color: #6c757d; /* Grå */
+    }
+
+
+/* === MODAL STYLING TILFØJET === */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1040;
+}
+
+.modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    z-index: 1050;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #333;
+}
+
+    .modal-header h3 {
+        margin: 0;
+        font-family: 'Arial Black', 'Impact', sans-serif;
+    }
+
+.btn-close-modal {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 2rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+}
+
+    .btn-close-modal:hover {
+        color: #fff;
+    }
+
+.modal-body {
+    padding: 1.5rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.form-group-modal {
+    margin-bottom: 1rem;
+}
+
+    .form-group-modal label {
+        display: block;
+        margin-bottom: .5rem;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+.form-control-modal {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: #0a0a0a;
+    color: #f0f0f0;
+    border: 1px solid #333;
+    border-radius: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1rem;
+}
+
+    .form-control-modal:disabled {
+        background-color: #111;
+        color: #555;
+    }
+
+.form-group-modal-split {
+    display: flex;
+    gap: 1.5rem;
+}
+
+    .form-group-modal-split .form-group-modal {
+        flex: 1;
+    }
+
+
+.modal-footer {
+    display: flex;
+    justify-content: space-between; /* Slet-knap til venstre, resten til højre */
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background-color: #121212;
+    border-top: 1px solid #333;
+}
+
+.modal-footer-right {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-cancel, .btn-save, .btn-delete-modal {
+    border-radius: 0;
+    padding: 0.5rem 1.5rem;
+    text-transform: uppercase;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    font-size: 0.9rem;
+    border: none;
+}
+
+.btn-cancel {
+    background-color: #555;
+    color: #fff;
+}
+
+    .btn-cancel:hover {
+        background-color: #666;
+    }
+
+.btn-save {
+    background-color: #198754;
+    color: #fff;
+}
+
+    .btn-save:hover {
+        background-color: #157347;
+    }
+
+.btn-delete-modal {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+    .btn-delete-modal:hover {
+        background-color: #b02a37;
     }

@@ -1,0 +1,268 @@
+﻿/* Sidens header (Titel + Knap) */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+    .admin-header h1 {
+        margin: 0;
+    }
+
+.btn-add {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #198754; /* Grøn */
+    color: #fff;
+    border: none;
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+}
+
+    .btn-add:hover {
+        background-color: #157347;
+    }
+
+/* Admin Tabel */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+    .admin-table th, .admin-table td {
+        border: 1px solid #333;
+        padding: 0.75rem 1rem;
+        text-align: left;
+    }
+
+    .admin-table thead {
+        background-color: #1a1a1a;
+    }
+
+    .admin-table th {
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .admin-table tbody tr:nth-child(odd) {
+        background-color: #121212;
+    }
+
+    .admin-table tbody tr:hover {
+        background-color: #222;
+    }
+
+.text-right {
+    text-align: right;
+}
+
+/* Knapper i tabellen */
+.btn-edit {
+    background: none;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 0.25rem 0.75rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.2s ease;
+}
+
+    .btn-edit:hover {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+
+/* Rolle-styling */
+.role-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+    .role-badge.admin {
+        background-color: #dc3545; /* Rød */
+        color: #fff;
+    }
+
+    .role-badge.member {
+        background-color: #0d6efd; /* Blå */
+        color: #fff;
+    }
+
+    .role-badge.sales {
+        background-color: #ffc107; /* Gul */
+        color: #000;
+    }
+
+
+/* MODAL Styling (Popup) */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1040;
+}
+
+.modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px; /* Lidt smallere end Sales-modalen */
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    z-index: 1050;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #333;
+}
+
+    .modal-header h3 {
+        margin: 0;
+        font-family: 'Arial Black', 'Impact', sans-serif;
+    }
+
+.btn-close-modal {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 2rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+}
+
+    .btn-close-modal:hover {
+        color: #fff;
+    }
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.form-group-modal {
+    margin-bottom: 1rem;
+}
+
+    .form-group-modal label {
+        display: block;
+        margin-bottom: .5rem;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+.form-control-modal {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: #0a0a0a;
+    color: #f0f0f0;
+    border: 1px solid #333;
+    border-radius: 0;
+    font-family: Arial, Helvetica, sans-serif; /* Sørg for at select-boksen arver font */
+    font-size: 1rem; /* Sørg for at select-boksen arver font-størrelse */
+}
+
+    .form-control-modal:disabled {
+        background-color: #111;
+        color: #555;
+    }
+
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background-color: #121212;
+    border-top: 1px solid #333;
+}
+
+.btn-cancel, .btn-save {
+    border-radius: 0;
+    padding: 0.5rem 1.5rem;
+    text-transform: uppercase;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    font-size: 0.9rem;
+}
+
+.btn-cancel {
+    background-color: #555;
+    color: #fff;
+    border: 1px solid #555;
+}
+
+    .btn-cancel:hover {
+        background-color: #666;
+    }
+
+.btn-save {
+    background-color: #198754;
+    color: #fff;
+    border: 1px solid #198754;
+}
+
+    .btn-save:hover {
+        background-color: #157347;
+    }
+
+/* Responsiv tabel (mobil) */
+@media (max-width: 768px) {
+    .admin-table thead {
+        display: none; /* Skjul headers */
+    }
+
+    .admin-table tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid #333;
+    }
+
+    .admin-table td {
+        display: block;
+        text-align: right; /* Højrestil data */
+        border: none;
+        border-bottom: 1px solid #222;
+        padding-left: 50%; /* Plads til label */
+        position: relative;
+    }
+
+        .admin-table td::before {
+            /* Indsæt labels (data-label) */
+            content: attr(data-label);
+            position: absolute;
+            left: 0.75rem;
+            width: calc(50% - 1.5rem);
+            text-align: left;
+            font-weight: bold;
+            color: #888;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .admin-table td.text-right {
+            text-align: right; /* Bevar højre-justering for knapper */
+        }
+}

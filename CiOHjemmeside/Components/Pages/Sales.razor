@@ -1,7 +1,193 @@
 ﻿@page "/sales"
 @layout Layout.InternalLayout
+@rendermode InteractiveServer
+
+@inject IProductService ProductService
+
+<link rel="stylesheet" href="Components/Pages/Sales.razor.css" />
 
 <PageTitle>Sales Dashboard</PageTitle>
 
-<h1>Sales</h1>
-<p>Lagerstyring (Merchandise) kommer her i Fase 2.</p>
+<div class="pos-container">
+
+    <div class="product-grid">
+        @foreach (var group in productGroups)
+        {
+            <div class="product-card" @onclick="() => SelectProductGroup(group)">
+                <img src="@(group.ImageUrl ?? "/images/placeholder.png")" alt="@group.GroupName" />
+                <div class="product-name">@group.GroupName</div>
+            </div>
+        }
+    </div>
+
+    <div class="cart-section">
+        <h3>Indkøbskurv</h3>
+
+        @if (!cart.Any())
+        {
+            <div class="cart-empty">Kurven er tom</div>
+        }
+        else
+        {
+            <div class="cart-items">
+                @foreach (var item in cart)
+                {
+                    <div class="cart-item">
+                        <span>@item.Variant.VariantName @item.Group.GroupName</span>
+                        <span class="cart-item-price">@item.Variant.Price?.ToString("N2") kr.</span>
+                        <button class="btn-remove-item" @onclick="() => RemoveFromCart(item)">×</button>
+                    </div>
+                }
+            </div>
+            <hr class_="cart-divider" />
+            <div class="cart-total">
+                <span>Total</span>
+                <span>@cart.Sum(i => i.Variant.Price ?? 0).ToString("N2") kr.</span>
+            </div>
+        }
+
+        <button class="btn-sell" @onclick="ShowPaymentModal" disabled="@(!cart.Any())">
+            [ SÆLG ]
+        </button>
+    </div>
+
+</div>
+
+
+@if (selectedGroup != null)
+{
+    <div class="modal-backdrop" @onclick="CloseVariantModal"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Vælg Varianter: @selectedGroup.GroupName</h3>
+            <button class="btn-close-modal" @onclick="CloseVariantModal">×</button>
+        </div>
+        <div class="modal-body variant-grid">
+            @foreach (var variant in selectedGroup.Variants)
+            {
+                <button class="btn-variant @(variant.StockQuantity == 0 ? "disabled" : "")"
+                        @onclick="() => AddToCart(selectedGroup, variant)"
+                        disabled="@(variant.StockQuantity == 0)">
+                    <span class="variant-name">@variant.VariantName</span>
+                    <span class="variant-stock">Lager: @variant.StockQuantity</span>
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@if (isPaymentModalVisible)
+{
+    <div class="modal-backdrop" @onclick="ClosePaymentModal"></div>
+    <div class="modal-content payment-modal">
+        <div class="modal-header">
+            <h3>Betaling</h3>
+            <button class="btn-close-modal" @onclick="ClosePaymentModal">×</button>
+        </div>
+        <div class="modal-body text-center">
+            <h4>Total: @cart.Sum(i => i.Variant.Price ?? 0).ToString("N2") kr.</h4>
+            <p>Scan MobilePay QR-kode for at gennemføre købet.</p>
+
+            <img src="/images/mobilepay_qr.png" alt="MobilePay QR Kode" class="qr-code" />
+
+            <button class="btn-complete-sale" @onclick="CompleteSale">
+                Betaling Gennemført (Opdater Lager)
+            </button>
+        </div>
+    </div>
+}
+
+
+@code {
+    // Fase 2: Dummy data
+    private List<ProductGroup> productGroups = new();
+
+    // Kurven
+    private List<(ProductGroup Group, ProductVariant Variant)> cart = new();
+
+    // Modal-styring
+    private ProductGroup? selectedGroup;
+    private bool isPaymentModalVisible = false;
+
+    protected override void OnInitialized()
+    {
+        // I Fase 2 bygger vi dummy-data. I Fase 3 kalder vi ProductService.GetAllGroupsWithVariantsAsync()
+        var tShirtGroup = new ProductGroup
+        {
+            Id = 1,
+            GroupName = "LIFE T-Shirt",
+            ImageUrl = "/images/merch_tshirt.jpg" // Du skal tilføje dette billede
+        };
+        tShirtGroup.Variants = new List<ProductVariant>
+        {
+            new ProductVariant { Id = 10, ProductGroupId = 1, VariantName = "S", StockQuantity = 10, Price = 150 },
+            new ProductVariant { Id = 11, ProductGroupId = 1, VariantName = "M", StockQuantity = 8, Price = 150 },
+            new ProductVariant { Id = 12, ProductGroupId = 1, VariantName = "L", StockQuantity = 5, Price = 150 },
+            new ProductVariant { Id = 13, ProductGroupId = 1, VariantName = "XL", StockQuantity = 2, Price = 150 },
+            new ProductVariant { Id = 14, ProductGroupId = 1, VariantName = "XXL", StockQuantity = 0, Price = 150 } // Udsolgt
+        };
+
+        var vinylGroup = new ProductGroup
+        {
+            Id = 2,
+            GroupName = "LIFE Vinyl",
+            ImageUrl = "/images/merch_vinyl.jpg" // Du skal tilføje dette billede
+        };
+        vinylGroup.Variants = new List<ProductVariant>
+        {
+            new ProductVariant { Id = 20, ProductGroupId = 2, VariantName = "Vinyl", StockQuantity = 15, Price = 250 }
+        };
+
+        productGroups.Add(tShirtGroup);
+        productGroups.Add(vinylGroup);
+    }
+
+    private void SelectProductGroup(ProductGroup group)
+    {
+        selectedGroup = group;
+    }
+
+    private void CloseVariantModal()
+    {
+        selectedGroup = null;
+    }
+
+    private void AddToCart(ProductGroup group, ProductVariant variant)
+    {
+        // Fase 2: Vi justerer dummy-lageret.
+        // I Fase 3 vil vi kun justere lageret *efter* salget er gennemført.
+        variant.StockQuantity--;
+        cart.Add((group, variant));
+    }
+
+    private void RemoveFromCart((ProductGroup Group, ProductVariant Variant) item)
+    {
+        // Fase 2: Læg varen tilbage på dummy-lageret
+        item.Variant.StockQuantity++;
+        cart.Remove(item);
+    }
+
+    private void ShowPaymentModal()
+    {
+        isPaymentModalVisible = true;
+        selectedGroup = null; // Luk den anden modal, hvis den er åben
+    }
+
+    private void ClosePaymentModal()
+    {
+        isPaymentModalVisible = false;
+    }
+
+    private async Task CompleteSale()
+    {
+        // Fase 3:
+        // 1. Loop gennem 'cart'
+        // 2. Kald ProductService.UpdateVariantStockAsync() for hver variant
+        // 3. Gem salget i en ny "SalesHistory"-tabel (skal måske tilføjes til Fase 1?)
+
+        Console.WriteLine("Salget er gennemført. Lageret ville blive opdateret i Fase 3.");
+
+        cart.Clear();
+        ClosePaymentModal();
+    }
+}

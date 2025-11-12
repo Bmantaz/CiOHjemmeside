@@ -1,0 +1,10 @@
+﻿@namespace CiOHjemmeside.Components.Auth
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Tvinger en navigation til login-siden, hvis en uautoriseret bruger rammer en låst side.
+        NavigationManager.NavigateTo("/login");
+    }
+}

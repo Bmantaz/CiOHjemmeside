@@ -1,6 +1,10 @@
 ﻿@page "/login"
 @layout Layout.EmptyLayout
 @rendermode InteractiveServer
+@attribute [AllowAnonymous]
+
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavManager
 
 <link rel="stylesheet" href="Components/Pages/Login.razor.css" />
 
@@ -9,7 +13,7 @@
 <div class="login-container">
     <div class="login-box">
         <h1>Member Access</h1>
-        
+
         <div class="form-group">
             <label for="username">Username</label>
             <input id="username" class="form-control" @bind="username" />
@@ -17,7 +21,7 @@
 
         <div class="form-group">
             <label for="password">Password</label>
-            <input id="password" type="password" class="form-control" @bind="password" />
+            <input id="password" type="password" class="form-control" @bind="password" @onkeyup="HandleKeyUp" />
         </div>
 
         @if (!string.IsNullOrEmpty(errorMessage))
@@ -25,23 +29,51 @@
             <div class="login-error">@errorMessage</div>
         }
 
-        <button class="btn btn-login" @onclick="HandleLogin">[ LOGIN ]</button>
+        <button class="btn btn-login" @onclick="HandleLogin" disabled="@isProcessing">
+            @if (isProcessing)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            }
+            else
+            {
+                <span>[ LOGIN ]</span>
+            }
+        </button>
     </div>
 </div>
 
 @code {
     private string username = string.Empty;
     private string password = string.Empty;
-    private string errorMessage = string.Empty; // Sættes i Fase 3
+    private string errorMessage = string.Empty;
+    private bool isProcessing = false;
+
+    // OPDATERET (FASE 3): Løser CS0642
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
 
     private async Task HandleLogin()
     {
-        // Fase 2: Vi logger blot til konsollen.
-        // Fase 3: Vi implementerer logik med IUserService og BCrypt.
-        Console.WriteLine($"Forsøger login med: {username}");
-        errorMessage = "Login-funktion er under udvikling (Fase 3).";
-        
-        // Simulerer et netværkskald
-        await Task.Delay(500); 
+        isProcessing = true;
+        errorMessage = string.Empty;
+
+        var authProvider = (CustomAuthStateProvider)AuthProvider;
+
+        bool success = await authProvider.LoginAsync(username, password);
+
+        if (success)
+        {
+            NavManager.NavigateTo("/dashboard", forceLoad: true);
+        }
+        else
+        {
+            errorMessage = "Fejl i brugernavn eller adgangskode.";
+            isProcessing = false;
+        }
     }
 }

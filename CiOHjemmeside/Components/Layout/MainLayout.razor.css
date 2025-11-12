@@ -8,12 +8,7 @@ main {
     flex: 1;
     display: flex;
     flex-direction: column;
-}
-
-.sidebar {
-    /* Fjernet gradient - sidebaren er nu solid mørk */
-    background-color: #000000;
-    border-right: 1px solid #222;
+    min-height: 100vh; /* Sikrer at footeren altid er i bunden */
 }
 
 .top-row {
@@ -24,6 +19,9 @@ main {
     height: 3.5rem;
     display: flex;
     align-items: center;
+    /* Tilføjet padding, så det matcher det gamle 'article' */
+    padding-left: 2rem !important;
+    padding-right: 1.5rem !important;
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
@@ -51,6 +49,9 @@ main {
     text-align: center;
     font-size: 0.8rem;
     color: #555;
+    /* Tilføjet padding, så det matcher det gamle 'article' */
+    padding-left: 2rem !important;
+    padding-right: 1.5rem !important;
 }
 
     .main-footer .login-link {
@@ -76,41 +77,8 @@ main {
         }
 }
 
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
+/* FJERNET: Hele @media (min-width: 641px) blokken, da den håndterede sidebaren */
 
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-        .top-row.auth ::deep a:first-child {
-            flex: 1;
-            text-align: right;
-            width: 0;
-        }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
-
-    .main-footer {
-        /* Juster padding til at matche article */
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
-}
 
 #blazor-error-ui {
     /* Rettet til mørkt tema */

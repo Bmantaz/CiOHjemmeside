@@ -1,0 +1,271 @@
+﻿/* Hoved-layout: Grid til produkter, Kurv til højre */
+.pos-container {
+    display: grid;
+    grid-template-columns: 3fr 1fr; /* 75% til produkter, 25% til kurv */
+    gap: 2rem;
+    height: calc(100vh - 7.5rem); /* Fuld højde minus top-bar og padding */
+}
+
+/* Venstre side: Produkt-grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+    overflow-y: auto; /* Tillad scroll hvis der er mange produkter */
+}
+
+.product-card {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .product-card:hover {
+        background-color: #2a2a2a;
+        border-color: #555;
+    }
+
+    .product-card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        display: block;
+    }
+
+.product-name {
+    padding: 1rem;
+    text-align: center;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    text-transform: uppercase;
+}
+
+/* Højre side: Kurv */
+.cart-section {
+    background-color: #121212;
+    border: 1px solid #333;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+    .cart-section h3 {
+        margin-top: 0;
+        text-align: center;
+        border-bottom: 1px solid #333;
+        padding-bottom: 1rem;
+    }
+
+.cart-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.cart-items {
+    flex: 1;
+    overflow-y: auto;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.cart-item-price {
+    color: #888;
+    margin-left: auto;
+    padding: 0 1rem;
+}
+
+.btn-remove-item {
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.cart-divider {
+    border: none;
+    border-top: 1px dashed #333;
+    margin: 1rem 0;
+}
+
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.btn-sell {
+    width: 100%;
+    padding: 1rem;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 1.2rem;
+    color: #000;
+    background-color: #fff;
+    border: 1px solid #fff;
+    border-radius: 0;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+    .btn-sell:hover {
+        background-color: #ccc;
+    }
+
+    .btn-sell:disabled {
+        background-color: #333;
+        border-color: #333;
+        color: #555;
+        cursor: not-allowed;
+    }
+
+/* MODAL Styling (Popup) */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1040;
+}
+
+.modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    z-index: 1050;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #333;
+}
+
+    .modal-header h3 {
+        margin: 0;
+        font-family: 'Arial Black', 'Impact', sans-serif;
+    }
+
+.btn-close-modal {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 2rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+}
+
+    .btn-close-modal:hover {
+        color: #fff;
+    }
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* Grid til varianter */
+.variant-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.btn-variant {
+    background-color: #333;
+    border: 1px solid #555;
+    color: #fff;
+    padding: 1rem;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+    .btn-variant:hover {
+        background-color: #198754;
+        border-color: #198754;
+    }
+
+    .btn-variant.disabled {
+        background-color: #111;
+        border-color: #222;
+        color: #444;
+        cursor: not-allowed;
+        text-decoration: line-through;
+    }
+
+.variant-name {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.variant-stock {
+    display: block;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.btn-variant.disabled .variant-stock {
+    color: #444;
+}
+
+
+/* Betalings-modal */
+.payment-modal .modal-body {
+    text-align: center;
+}
+
+.qr-code {
+    max-width: 250px;
+    width: 100%;
+    height: auto;
+    margin: 1.5rem 0;
+    background-color: #fff; /* Placeholder */
+    padding: 1rem;
+}
+
+.btn-complete-sale {
+    width: 100%;
+    padding: 1rem;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    text-transform: uppercase;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #198754;
+    border: 1px solid #198754;
+    border-radius: 0;
+    cursor: pointer;
+}
+
+    .btn-complete-sale:hover {
+        background-color: #157347;
+    }

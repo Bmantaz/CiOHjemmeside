@@ -1,8 +1,270 @@
 ﻿@page "/users"
 @layout Layout.InternalLayout
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+
+@using System.Diagnostics
+@inject IUserService UserService
+@inject IConcertService ConcertService
+@inject IProductService ProductService
+@inject ICalendarEventService CalendarEventService
+
+<link rel="stylesheet" href="Components/Pages/UserManagement.razor.css" />
 
 <PageTitle>Brugerstyring</PageTitle>
 
-<h1>Brugerstyring</h1>
-<p>(Kun synlig for Admin i Fase 3)</p>
-<p>Side til oprettelse og redigering af brugere kommer her i Fase 2.</p>
+<div class="admin-header">
+    <h1>Brugerstyring</h1>
+    <button class="btn btn-add" @onclick="ShowAddModal">
+        <span class="bi bi-person-plus-fill-nav-menu"></span> Opret Ny Bruger
+    </button>
+</div>
+
+<p>Admin-side til at oprette og redigere brugerroller.</p>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Rolle</th>
+            <th class="text-right">Handling</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in usersList)
+        {
+            <tr>
+                <td data-label="Username">@user.Username</td>
+                <td data-label="Rolle">
+                    <span class="role-badge @user.Role.ToLower()">@user.Role</span>
+                </td>
+                <td data-label="Handling" class="text-right">
+                    <button class="btn btn-edit" @onclick="() => ShowEditModal(user)">Rediger Rolle</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+@if (isModalVisible)
+{
+    <div class="modal-backdrop" @onclick="CloseModal"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>@modalTitle</h3>
+            <button class="btn-close-modal" @onclick="CloseModal">×</button>
+        </div>
+        
+        <EditForm Model="currentUser" OnValidSubmit="HandleSave">
+            <DataAnnotationsValidator />
+            <div class="modal-body">
+
+                <div class="form-group-modal">
+                    <label>Username</label>
+                    <InputText class="form-control-modal" @bind-Value="currentUser.Username" disabled="@(!isCreatingNewUser)" />
+                    <ValidationMessage For="() => currentUser.Username" />
+                </div>
+                
+                @if (isCreatingNewUser)
+                {
+                    <div class="form-group-modal">
+                        <label>Password</label>
+                        <InputText type="password" class="form-control-modal" @bind-Value="newPassword" />
+                        <ValidationMessage For="() => newPassword" />
+                    </div>
+                }
+
+                <div class="form-group-modal">
+                    <label>Rolle</label>
+                    <InputSelect class="form-control-modal" @bind-Value="currentUser.Role">
+                        <option value="">Vælg rolle...</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Member">Member</option>
+                        <option value="Sales">Sales</option>
+                    </InputSelect>
+                    <ValidationMessage For="() => currentUser.Role" />
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" @onclick="CloseModal">Annuller</button>
+                <button type="submit" class="btn btn-save" disabled="@isProcessingSave">
+                    @if (isProcessingSave) { <span class="spinner-border spinner-border-sm"></span> }
+                    else { <span>Gem</span> }
+                </button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+
+<div class="admin-section">
+    <h2>Database Forbindelsestest</h2>
+    <p>Kør en test af alle Dapper-services for at validere forbindelsen til databasen.</p>
+    <button class="btn btn-edit" @onclick="RunDataTest" disabled="@isProcessingTest">
+        @if (isProcessingTest)
+        {
+            <span class="spinner-border spinner-border-sm"></span>
+            <span> Tester...</span>
+        }
+        else
+        {
+            <span>Kør Test</span>
+        }
+    </button>
+    
+    @if (testLog.Any())
+    {
+        <h3 class="mt-4">Testresultater:</h3>
+        @foreach (var (status, error) in testLog)
+        {
+            <div class="mb-3">
+                <pre class="@(string.IsNullOrEmpty(error) ? "text-success" : "text-danger")">@status</pre>
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <pre class="text-danger small">@error</pre>
+                }
+            </div>
+        }
+    }
+</div>
+
+
+@code {
+    // Fase 3: Hentes nu fra databasen
+    private List<User> usersList = new();
+
+    private bool isModalVisible = false;
+    private bool isCreatingNewUser = false;
+    private bool isProcessingSave = false;
+    private string modalTitle = "Rediger Bruger";
+    private User currentUser = new();
+    private string newPassword = ""; 
+
+    // OPDATERET (FASE 3): Kører nu OnInitializedAsync
+    protected override async Task OnInitializedAsync()
+    {
+        // Fase 3: Hent rigtige data fra databasen
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        usersList = (await UserService.GetAllAsync()).ToList();
+    }
+
+    private void ShowAddModal()
+    {
+        currentUser = new User();
+        newPassword = "";
+        isCreatingNewUser = true;
+        modalTitle = "Opret Ny Bruger";
+        isModalVisible = true;
+    }
+
+    private void ShowEditModal(User userToEdit)
+    {
+        currentUser = new User
+        {
+            Id = userToEdit.Id,
+            Username = userToEdit.Username,
+            Role = userToEdit.Role,
+            PasswordHash = userToEdit.PasswordHash // Vigtigt at bevare den gamle hash
+        };
+        newPassword = "";
+        isCreatingNewUser = false;
+        modalTitle = $"Rediger Rolle: {currentUser.Username}";
+        isModalVisible = true;
+    }
+
+    private void CloseModal()
+    {
+        isModalVisible = false;
+    }
+
+    // OPDATERET (FASE 3): Gemmer nu til databasen
+    private async Task HandleSave()
+    {
+        isProcessingSave = true;
+
+        try
+        {
+            if (isCreatingNewUser)
+            {
+                // Hash adgangskoden (vigtigt!)
+                currentUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+                await UserService.AddAsync(currentUser);
+            }
+            else
+            {
+                // Opdater kun rolle (PasswordHash er uændret)
+                await UserService.UpdateAsync(currentUser);
+            }
+        
+            // Genindlæs listen fra databasen
+            await LoadUsers();
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            // Håndter fejl (f.eks. "Brugernavn findes allerede")
+            Console.WriteLine(ex.Message); 
+            // I en rigtig app ville vi vise fejlen i modalen
+        }
+        finally
+        {
+            isProcessingSave = false;
+        }
+    }
+
+    // --- START: Logik fra DataTest.razor (TILFØJET FASE 3) ---
+    private List<(string Status, string Error)> testLog = new();
+    private bool isProcessingTest = false;
+
+    private async Task RunDataTest()
+    {
+        isProcessingTest = true;
+        testLog.Clear();
+        var sw = new Stopwatch();
+
+        // Test UserService (vi har allerede loaded)
+        testLog.Add(($"OK - Hentede {usersList.Count()} brugere (allerede indlæst).", ""));
+
+        // Test ConcertService
+        try
+        {
+            sw.Start();
+            var concerts = await ConcertService.GetUpcomingConcertsAsync();
+            sw.Stop();
+            testLog.Add(($"OK - Hentede {concerts.Count()} koncerter på {sw.ElapsedMilliseconds} ms.", ""));
+        }
+        catch (Exception ex) { testLog.Add(("FEJL (ConcertService)", ex.Message)); }
+        finally { sw.Reset(); }
+
+        // Test ProductService
+        try
+        {
+            sw.Start();
+            var groups = await ProductService.GetAllGroupsWithVariantsAsync();
+            sw.Stop();
+            testLog.Add(($"OK - Hentede {groups.Count()} produktgrupper på {sw.ElapsedMilliseconds} ms.", ""));
+        }
+        catch (Exception ex) { testLog.Add(("FEJL (ProductService)", ex.Message)); }
+        finally { sw.Reset(); }
+
+        // Test CalendarEventService
+        try
+        {
+            sw.Start();
+            var events = await CalendarEventService.GetEventsForPeriodAsync(DateTime.UtcNow.AddYears(-5), DateTime.UtcNow.AddYears(5));
+            sw.Stop();
+            testLog.Add(($"OK - Hentede {events.Count()} events på {sw.ElapsedMilliseconds} ms.", ""));
+        }
+        catch (Exception ex) { testLog.Add(("FEJL (CalendarEventService)", ex.Message)); }
+        finally { sw.Reset(); }
+
+        isProcessingTest = false;
+    }
+    // --- SLUT: Logik fra DataTest.razor ---
+}

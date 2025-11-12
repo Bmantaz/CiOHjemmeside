@@ -4,12 +4,17 @@
 
 <link rel="stylesheet" href="Components/Pages/Dashboard.razor.css" />
 
+@inject ICalendarEventService CalendarEventService
+@inject IUserService UserService
+@inject NavigationManager NavManager
+
 <PageTitle>Dashboard</PageTitle>
 
 <div class="calendar-header">
     <button class="btn-nav" @onclick="PreviousMonth">&lt;</button>
     <h2>@currentDate.ToString("MMMM yyyy")</h2>
     <button class="btn-nav" @onclick="NextMonth">&gt;</button>
+    <button class="btn-add-event" @onclick="ShowAddModal">Opret Event</button>
 </div>
 
 <div class="calendar-grid">
@@ -33,56 +38,152 @@
             <div class="day-events">
                 @foreach (var ev in GetEventsForDay(day))
                 {
-                    <div class="event-chip @ev.EventType.ToLower()">@ev.Title</div>
+                    <button class="event-chip @ev.EventType.ToLower()" @onclick="() => EventClicked(ev)" @onclick:stopPropagation>
+                        @ev.Title
+                    </button>
                 }
             </div>
         </div>
     }
 </div>
 
+
+@if (isModalVisible)
+{
+    <div class="modal-backdrop" @onclick="CloseModal"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>@modalTitle</h3>
+            <button class="btn-close-modal" @onclick="CloseModal">×</button>
+        </div>
+
+        <EditForm Model="currentEvent" OnValidSubmit="HandleSave">
+            <DataAnnotationsValidator />
+            <div class="modal-body">
+
+                <div class="form-group-modal">
+                    <label>Titel</label>
+                    <InputText class="form-control-modal" @bind-Value="currentEvent.Title" />
+                    <ValidationMessage For="() => currentEvent.Title" />
+                </div>
+
+                <div class="form-group-modal">
+                    <label>Event Type</label>
+                    <InputSelect class="form-control-modal" @bind-Value="currentEvent.EventType">
+                        <option value="">Vælg type...</option>
+                        <option value="Gig">Gig</option>
+                        <option value="Practice">Practice</option>
+                        <option value="Discord">Discord</option>
+                        <option value="Other">Other</option>
+                    </InputSelect>
+                    <ValidationMessage For="() => currentEvent.EventType" />
+                </div>
+
+                <div class="form-group-modal-split">
+                    <div class="form-group-modal">
+                        <label>Start Tidspunkt</label>
+                        <InputDate class="form-control-modal" @bind-Value="currentEvent.StartTime" type="datetime - local" />
+                    </div>
+                    <div class="form-group-modal">
+                        <label>Slut Tidspunkt (Valgfri)</label>
+                        <InputDate class="form-control-modal" @bind-Value="nullableEndTime" type="datetime - local" />
+                    </div>
+                </div>
+
+                <div class="form-group-modal">
+                    <label>Noter</label>
+                    <InputTextArea rows="4" class="form-control-modal" @bind-Value="currentEvent.Notes" />
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div>
+                    @if (!isCreatingNewUser)
+                    {
+                        <button type="button" class="btn btn-delete-modal" @onclick="HandleDelete" disabled="@isProcessingSave">Slet</button>
+                    }
+                </div>
+                <div class="modal-footer-right">
+                    <button type="button" class="btn btn-cancel" @onclick="CloseModal">Annuller</button>
+                    <button type="submit" class="btn btn-save" disabled="@isProcessingSave">
+                        @if (isProcessingSave)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        else
+                        {
+
+                            <span>Gem</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+}
+
+
 @code {
+    // RETTET (RZ9991/CS0103): Flyttet ind i @code-blokken
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
     private DateTime currentDate = DateTime.Now;
     private List<DateTime> daysInMonth = new();
     private int startDayOffset = 0;
+    private int _currentUserId; // Holder den indloggede brugers ID
 
-    // Fase 2: Dummy data
-    private List<CalendarEvent> events = new List<CalendarEvent>
+    private List<CalendarEvent> events = new();
+
+    // Modal-styring
+    private bool isModalVisible = false;
+    private string modalTitle = "Opret Event";
+    private CalendarEvent currentEvent = new();
+    private bool isCreatingNewUser = true;
+    private bool isProcessingSave = false;
+
+    // Proxy-property til at håndtere InputDate binding til nullable EndTime
+    private DateTime? nullableEndTime
     {
-        new CalendarEvent
+        get => currentEvent.EndTime;
+        set => currentEvent.EndTime = value;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState;
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
         {
-            Id = 1,
-            Title = "Øver",
-            EventType = "Practice",
-            StartTime = DateTime.Now.AddDays(1).Date.AddHours(19),
-            Notes = "Gennemgang af nyt materiale"
-        },
-        new CalendarEvent
-        {
-            Id = 2,
-            Title = "Gig: Stengade",
-            EventType = "Gig",
-            StartTime = DateTime.Now.AddDays(3).Date.AddHours(21),
-            Notes = "Soundcheck kl 18:00"
-        },
-        new CalendarEvent
-        {
-            Id = 3,
-            Title = "Discord Møde",
-            EventType = "Discord",
-            StartTime = DateTime.Now.AddDays(-2).Date.AddHours(20),
-        },
-        new CalendarEvent
-        {
-            Id = 4,
-            Title = "Releasefest",
-            EventType = "Other",
-            StartTime = DateTime.Now.AddDays(1).Date.AddHours(22),
+            // RETTET (CS8604): Tilføjet null-tjek
+            var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            _currentUserId = !string.IsNullOrEmpty(userIdClaim) ? int.Parse(userIdClaim) : 0;
+
+            if (_currentUserId == 0)
+            {
+                // Burde ikke ske, hvis man er logget ind, men for en sikkerheds skyld
+                NavManager.NavigateTo("/login");
+                return;
+            }
         }
-    };
+        else
+        {
+            NavManager.NavigateTo("/login");
+            return;
+        }
 
-    protected override void OnInitialized()
-    {
         BuildCalendar();
+        await LoadEventsAsync();
+    }
+
+    private async Task LoadEventsAsync()
+    {
+        var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+
+        events = (await CalendarEventService.GetEventsForPeriodAsync(firstDayOfMonth, lastDayOfMonth)).ToList();
+
+        StateHasChanged();
     }
 
     private void BuildCalendar()
@@ -91,9 +192,8 @@
         var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
         int days = DateTime.DaysInMonth(currentDate.Year, currentDate.Month);
 
-        // Beregn offset. Vi justerer, så mandag = 0
         startDayOffset = (int)firstDayOfMonth.DayOfWeek;
-        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1; // Konverterer søndag (0) til 6, og resten rykkes 1 ned
+        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1; // Mandag = 0
 
         for (int i = 1; i <= days; i++)
         {
@@ -103,25 +203,93 @@
 
     private IEnumerable<CalendarEvent> GetEventsForDay(DateTime day)
     {
-        // Finder events, hvor StartTime er på den pågældende dato
         return events.Where(e => e.StartTime.Date == day.Date).OrderBy(e => e.StartTime);
     }
 
+    // Klik på en tom dato
     private void DateClicked(DateTime date)
     {
-        Console.WriteLine($"Dato klikket: {date.ToShortDateString()}");
-        // I Fase 3 åbner vi en modal for at oprette en ny event her
+        isCreatingNewUser = true;
+        modalTitle = "Opret Ny Event";
+        currentEvent = new CalendarEvent
+        {
+            StartTime = date.Date.AddHours(DateTime.Now.Hour), // Start på den klikkede dato, nuværende klokkeslæt
+            CreatedByUserId = _currentUserId,
+            EventType = "Practice" // Default
+        };
+        nullableEndTime = null; // Nulstil EndTime
+        isModalVisible = true;
     }
 
-    private void PreviousMonth()
+    // Klik på "Opret Event"-knappen
+    private void ShowAddModal()
+    {
+        DateClicked(DateTime.Today); // Genbruger logikken fra at klikke på i dag
+    }
+
+    // Klik på en eksisterende event-chip
+    private void EventClicked(CalendarEvent ev)
+    {
+        isCreatingNewUser = false;
+        modalTitle = "Rediger Event";
+
+        currentEvent = new CalendarEvent
+        {
+            Id = ev.Id,
+            Title = ev.Title,
+            EventType = ev.EventType,
+            StartTime = ev.StartTime,
+            EndTime = ev.EndTime,
+            Notes = ev.Notes,
+            CreatedByUserId = ev.CreatedByUserId
+        };
+        nullableEndTime = ev.EndTime;
+        isModalVisible = true;
+    }
+
+    private void CloseModal()
+    {
+        isModalVisible = false;
+    }
+
+    private async Task HandleSave()
+    {
+        isProcessingSave = true;
+
+        if (isCreatingNewUser)
+        {
+            await CalendarEventService.AddAsync(currentEvent);
+        }
+        else
+        {
+            await CalendarEventService.UpdateAsync(currentEvent);
+        }
+
+        await LoadEventsAsync();
+        CloseModal();
+        isProcessingSave = false;
+    }
+
+    private async Task HandleDelete()
+    {
+        isProcessingSave = true;
+        await CalendarEventService.DeleteAsync(currentEvent.Id);
+        await LoadEventsAsync();
+        CloseModal();
+        isProcessingSave = false;
+    }
+
+    private async Task PreviousMonth()
     {
         currentDate = currentDate.AddMonths(-1);
         BuildCalendar();
+        await LoadEventsAsync();
     }
 
-    private void NextMonth()
+    private async Task NextMonth()
     {
         currentDate = currentDate.AddMonths(1);
         BuildCalendar();
+        await LoadEventsAsync();
     }
 }
