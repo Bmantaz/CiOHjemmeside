@@ -56,6 +56,7 @@ app.UseAntiforgery();
 // FJERNET: app.UseAuthentication();
 // FJERNET: app.UseAuthorization();
 
+// KORREKT KODE: Denne linje SKAL være her for at mappe SignalR-endpoints.
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
