@@ -6,8 +6,6 @@
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavManager
 
-<link rel="stylesheet" href="Components/Pages/Login.razor.css" />
-
 <PageTitle>Login</PageTitle>
 
 <div class="login-container">
@@ -48,7 +46,6 @@
     private string errorMessage = string.Empty;
     private bool isProcessing = false;
 
-    // OPDATERET (FASE 3): Løser CS0642
     private async Task HandleKeyUp(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -57,22 +54,35 @@
         }
     }
 
+    // OPDATERET: Nu med robust fejlhåndtering og korrekt navigation
     private async Task HandleLogin()
     {
         isProcessing = true;
         errorMessage = string.Empty;
 
-        var authProvider = (CustomAuthStateProvider)AuthProvider;
-
-        bool success = await authProvider.LoginAsync(username, password);
-
-        if (success)
+        try
         {
-            NavManager.NavigateTo("/dashboard", forceLoad: true);
+            var authProvider = (CustomAuthStateProvider)AuthProvider;
+            bool success = await authProvider.LoginAsync(username, password);
+
+            if (success)
+            {
+                // RETTELSE 2: forceLoad: true er fjernet for at blive i samme session
+                NavManager.NavigateTo("/dashboard");
+            }
+            else
+            {
+                errorMessage = "Fejl i brugernavn eller adgangskode.";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Fejl i brugernavn eller adgangskode.";
+            Console.WriteLine($"Login fejlede: {ex.Message}");
+            errorMessage = "En uventet fejl opstod. Kontakt admin.";
+        }
+        finally
+        {
+            // RETTELSE 3: Sikrer at spinneren ALTID stopper
             isProcessing = false;
         }
     }

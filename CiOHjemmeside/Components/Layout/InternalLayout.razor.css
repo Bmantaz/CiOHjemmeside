@@ -45,14 +45,26 @@
         color: #fff;
     }
 
-    /* Styling af "Log Ud"-linket */
-    .nav-link.logout {
-        color: #dc3545; /* Rød */
-    }
+/* RETTET: Styling til "Log Ud"-knappen */
+.logout-button {
+    /* Nulstil knap-styles */
+    background: none;
+    border: none;
+    padding: 0 1rem;
+    margin: 0;
+    /* Genbrug .nav-link styles */
+    font-family: Arial, Helvetica, sans-serif;
+    text-decoration: none;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #dc3545; /* Rød */
+    cursor: pointer;
+}
 
-        .nav-link.logout:hover {
-            color: #ff4d60;
-        }
+    .logout-button:hover {
+        color: #ff4d60;
+    }
 
 /* Selve sidens indhold */
 .internal-content {

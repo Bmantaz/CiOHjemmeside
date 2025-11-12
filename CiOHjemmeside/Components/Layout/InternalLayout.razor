@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavManager
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <link rel="stylesheet" href="Components/Layout/InternalLayout.razor.css" />
 
@@ -16,7 +20,7 @@
                 <NavLink class="nav-link" href="users">Brugerstyring</NavLink>
             </AuthorizeView>
 
-            <a class="nav-link logout" href="/">Log Ud</a>
+            <button class="nav-link logout-button" @onclick="HandleLogout">Log Ud</button>
         </div>
     </nav>
 
@@ -24,3 +28,25 @@
         @Body
     </main>
 </div>
+
+@code {
+    // TILFØJET: Tjekker login-status, når layoutet indlæses
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity == null || !user.Identity.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/login"); // Send til login, hvis ikke godkendt
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        var authProvider = (CustomAuthStateProvider)AuthProvider;
+        authProvider.Logout();
+
+        NavManager.NavigateTo("/", forceLoad: true);
+    }
+}

@@ -56,11 +56,11 @@
             <h3>@modalTitle</h3>
             <button class="btn-close-modal" @onclick="CloseModal">×</button>
         </div>
-
+        
         <EditForm Model="currentEvent" OnValidSubmit="HandleSave">
             <DataAnnotationsValidator />
             <div class="modal-body">
-
+                
                 <div class="form-group-modal">
                     <label>Titel</label>
                     <InputText class="form-control-modal" @bind-Value="currentEvent.Title" />
@@ -95,7 +95,7 @@
                     <InputTextArea rows="4" class="form-control-modal" @bind-Value="currentEvent.Notes" />
                 </div>
             </div>
-
+            
             <div class="modal-footer">
                 <div>
                     @if (!isCreatingNewUser)
@@ -106,15 +106,8 @@
                 <div class="modal-footer-right">
                     <button type="button" class="btn btn-cancel" @onclick="CloseModal">Annuller</button>
                     <button type="submit" class="btn btn-save" disabled="@isProcessingSave">
-                        @if (isProcessingSave)
-                        {
-                            <span class="spinner-border spinner-border-sm"></span>
-                        }
-                        else
-                        {
-
-                            <span>Gem</span>
-                        }
+                        @if (isProcessingSave) { <span class="spinner-border spinner-border-sm"></span> }
+                        else { <span>Gem</span> }
                     </button>
                 </div>
             </div>
@@ -124,25 +117,22 @@
 
 
 @code {
-    // RETTET (RZ9991/CS0103): Flyttet ind i @code-blokken
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
 
     private DateTime currentDate = DateTime.Now;
     private List<DateTime> daysInMonth = new();
     private int startDayOffset = 0;
-    private int _currentUserId; // Holder den indloggede brugers ID
+    private int _currentUserId;
 
     private List<CalendarEvent> events = new();
 
-    // Modal-styring
     private bool isModalVisible = false;
     private string modalTitle = "Opret Event";
     private CalendarEvent currentEvent = new();
     private bool isCreatingNewUser = true;
     private bool isProcessingSave = false;
-
-    // Proxy-property til at håndtere InputDate binding til nullable EndTime
+    
     private DateTime? nullableEndTime
     {
         get => currentEvent.EndTime;
@@ -153,25 +143,17 @@
     {
         var authState = await AuthState;
         var user = authState.User;
+
+        // RETTET: Vi fjerner 'else'-blokken. Routes.razor håndterer redirect.
+        // Vi skal KUN hente bruger-ID'et, hvis vi er logget ind.
         if (user.Identity?.IsAuthenticated == true)
         {
-            // RETTET (CS8604): Tilføjet null-tjek
             var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
             _currentUserId = !string.IsNullOrEmpty(userIdClaim) ? int.Parse(userIdClaim) : 0;
-
-            if (_currentUserId == 0)
-            {
-                // Burde ikke ske, hvis man er logget ind, men for en sikkerheds skyld
-                NavManager.NavigateTo("/login");
-                return;
-            }
-        }
-        else
-        {
-            NavManager.NavigateTo("/login");
-            return;
         }
 
+        // Fortsæt med at bygge kalenderen uanset hvad
+        // (Selvom [Authorize] attributten allerede har stoppet anonyme brugere)
         BuildCalendar();
         await LoadEventsAsync();
     }
@@ -180,9 +162,9 @@
     {
         var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
         var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
-
+        
         events = (await CalendarEventService.GetEventsForPeriodAsync(firstDayOfMonth, lastDayOfMonth)).ToList();
-
+        
         StateHasChanged();
     }
 
@@ -193,7 +175,7 @@
         int days = DateTime.DaysInMonth(currentDate.Year, currentDate.Month);
 
         startDayOffset = (int)firstDayOfMonth.DayOfWeek;
-        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1; // Mandag = 0
+        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1; 
 
         for (int i = 1; i <= days; i++)
         {
@@ -206,33 +188,30 @@
         return events.Where(e => e.StartTime.Date == day.Date).OrderBy(e => e.StartTime);
     }
 
-    // Klik på en tom dato
     private void DateClicked(DateTime date)
     {
         isCreatingNewUser = true;
         modalTitle = "Opret Ny Event";
         currentEvent = new CalendarEvent
         {
-            StartTime = date.Date.AddHours(DateTime.Now.Hour), // Start på den klikkede dato, nuværende klokkeslæt
+            StartTime = date.Date.AddHours(DateTime.Now.Hour),
             CreatedByUserId = _currentUserId,
-            EventType = "Practice" // Default
+            EventType = "Practice"
         };
-        nullableEndTime = null; // Nulstil EndTime
+        nullableEndTime = null;
         isModalVisible = true;
     }
 
-    // Klik på "Opret Event"-knappen
     private void ShowAddModal()
     {
-        DateClicked(DateTime.Today); // Genbruger logikken fra at klikke på i dag
+        DateClicked(DateTime.Today);
     }
 
-    // Klik på en eksisterende event-chip
     private void EventClicked(CalendarEvent ev)
     {
         isCreatingNewUser = false;
         modalTitle = "Rediger Event";
-
+        
         currentEvent = new CalendarEvent
         {
             Id = ev.Id,

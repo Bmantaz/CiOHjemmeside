@@ -13,6 +13,8 @@ builder.Services.AddRazorComponents()
 
 // --- START: Auth-konfiguration (Fase 3) ---
 
+// FJERNET: builder.Services.AddAuthentication(...).AddCookie(...)
+
 // Tilføjer Authorization-services (til [Authorize] og roller)
 builder.Services.AddAuthorizationCore();
 
@@ -50,6 +52,9 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+// FJERNET: app.UseAuthentication();
+// FJERNET: app.UseAuthorization();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
