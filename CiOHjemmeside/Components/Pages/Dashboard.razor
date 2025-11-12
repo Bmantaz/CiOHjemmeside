@@ -82,11 +82,11 @@
                 <div class="form-group-modal-split">
                     <div class="form-group-modal">
                         <label>Start Tidspunkt</label>
-                        <InputDate class="form-control-modal" @bind-Value="currentEvent.StartTime" type="datetime - local" />
+                        <InputDate class="form-control-modal" @bind-Value="currentEvent.StartTime" Type="InputDateType.DateTimeLocal" />
                     </div>
                     <div class="form-group-modal">
                         <label>Slut Tidspunkt (Valgfri)</label>
-                        <InputDate class="form-control-modal" @bind-Value="nullableEndTime" type="datetime - local" />
+                        <InputDate class="form-control-modal" @bind-Value="nullableEndTime" Type="InputDateType.DateTimeLocal" />
                     </div>
                 </div>
 
