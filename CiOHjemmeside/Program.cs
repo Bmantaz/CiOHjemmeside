@@ -1,29 +1,27 @@
 using CiOHjemmeside.Components;
 using CiOHjemmeside.Data.Services;
 using Npgsql;
-// TILFØJET TIL AUTH (FASE 3)
 using Microsoft.AspNetCore.Components.Authorization;
 using CiOHjemmeside.Data.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// TILFØJET: Giver vores AuthProvider adgang til HttpContext
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // --- START: Auth-konfiguration (Fase 3) ---
+builder.Services.AddAuthentication("CiO-Auth")
+    .AddCookie("CiO-Auth", options =>
+    {
+        options.LoginPath = "/login"; // Fortæller systemet, hvor login-siden er
+    });
 
-// FJERNET: builder.Services.AddAuthentication(...).AddCookie(...)
-
-// Tilføjer Authorization-services (til [Authorize] og roller)
 builder.Services.AddAuthorizationCore();
-
-// Gør auth-staten tilgængelig for alle komponenter via <CascadingAuthenticationState>
 builder.Services.AddCascadingAuthenticationState();
-
-// Registrer vores custom provider. Scoped er VIGTIGT.
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-
 // --- SLUT: Auth-konfiguration ---
 
 
@@ -53,8 +51,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-// FJERNET: app.UseAuthentication();
-// FJERNET: app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

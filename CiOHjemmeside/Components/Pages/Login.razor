@@ -6,8 +6,6 @@
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavManager
 
-<PageTitle>Login</PageTitle>
-
 <div class="login-container">
     <div class="login-box">
         <h1>Member Access</h1>
@@ -54,7 +52,6 @@
         }
     }
 
-    // OPDATERET: Nu med robust fejlhåndtering og korrekt navigation
     private async Task HandleLogin()
     {
         isProcessing = true;
@@ -67,23 +64,21 @@
 
             if (success)
             {
-                // RETTELSE 2: forceLoad: true er fjernet for at blive i samme session
-                NavManager.NavigateTo("/dashboard");
+                // RETTET: forceLoad: true er NØDVENDIG nu for at læse cookien
+                NavManager.NavigateTo("/dashboard", forceLoad: true);
             }
             else
             {
                 errorMessage = "Fejl i brugernavn eller adgangskode.";
+                isProcessing = false;
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Login fejlede: {ex.Message}");
             errorMessage = "En uventet fejl opstod. Kontakt admin.";
-        }
-        finally
-        {
-            // RETTELSE 3: Sikrer at spinneren ALTID stopper
             isProcessing = false;
         }
+        // Vi sætter ikke isProcessing = false her, da siden genindlæses
     }
 }

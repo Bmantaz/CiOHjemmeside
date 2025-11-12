@@ -1,24 +1,35 @@
 ﻿using CiOHjemmeside.Data.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 
 namespace CiOHjemmeside.Data.Auth
 {
+    // Denne provider håndterer nu BÅDE Blazor state og HTTP Cookie state
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
         private readonly IUserService _userService;
-        private ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        // IUserService injiceres (Provideren er Scoped)
-        public CustomAuthStateProvider(IUserService userService)
+        public CustomAuthStateProvider(IUserService userService, IHttpContextAccessor httpContextAccessor)
         {
             _userService = userService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            // Returnerer den aktuelt gemte bruger
-            return Task.FromResult(new AuthenticationState(_currentUser));
+            // Henter brugeren fra HTTP-kontekstens cookie
+            var user = _httpContextAccessor.HttpContext?.User;
+
+            if (user == null || !user.Identity.IsAuthenticated)
+            {
+                // Bruger er anonym
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
+
+            // Bruger er logget ind
+            return new AuthenticationState(user);
         }
 
         public async Task<bool> LoginAsync(string username, string password)
@@ -29,35 +40,45 @@ namespace CiOHjemmeside.Data.Auth
                 return false; // Bruger findes ikke
             }
 
-            // Valider adgangskode med BCrypt (den pakke vi tilføjede til seeding)
             if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             {
                 return false; // Forkert adgangskode
             }
 
-            // Opret claims (rettigheder) baseret på data fra databasen
+            // Opret claims (rettigheder)
             var claims = new[]
             {
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role), // Vores Admin/Member/Sales rolle
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()) // Brugerens ID
+                new Claim(ClaimTypes.Role, user.Role), // "Admin", "Member", "Sales"
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
 
-            // Opret identitet og principal
-            var identity = new ClaimsIdentity(claims, "CiO-Auth"); // Navngiver vores auth-metode
-            _currentUser = new ClaimsPrincipal(identity);
+            var identity = new ClaimsIdentity(claims, "CiO-Auth"); // Matcher "CiO-Auth" fra Program.cs
+            var principal = new ClaimsPrincipal(identity);
 
-            // Notificer systemet (alle [Authorize] tags) om, at login-staten har ændret sig
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
+            // DEN VIGTIGE DEL: Logger brugeren ind i cookie-systemet
+            if (_httpContextAccessor.HttpContext != null)
+            {
+                await _httpContextAccessor.HttpContext.SignInAsync("CiO-Auth", principal);
+            }
+
+            // Notificer Blazor om, at staten har ændret sig
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(principal)));
 
             return true;
         }
 
-        public void Logout()
+        public async Task Logout()
         {
-            // Nulstil til en anonym bruger
-            _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
+            // Log ud af cookie-systemet
+            if (_httpContextAccessor.HttpContext != null)
+            {
+                await _httpContextAccessor.HttpContext.SignOutAsync("CiO-Auth");
+            }
+
+            // Notificer Blazor om, at staten har ændret sig (til anonym)
+            var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymous)));
         }
     }
 }

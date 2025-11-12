@@ -2,12 +2,9 @@
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavManager
 
-@inject AuthenticationStateProvider AuthenticationStateProvider
-
 <link rel="stylesheet" href="Components/Layout/InternalLayout.razor.css" />
 
 <div class="internal-page">
-
     <nav class="internal-nav">
         <div class="nav-brand">
             CIO Dashboard
@@ -30,23 +27,11 @@
 </div>
 
 @code {
-    // TILFØJET: Tjekker login-status, når layoutet indlæses
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity == null || !user.Identity.IsAuthenticated)
-        {
-            NavManager.NavigateTo("/login"); // Send til login, hvis ikke godkendt
-        }
-    }
-
+    // RETTET: Kalder nu den nye Logout-metode, der sletter cookien
     private async Task HandleLogout()
     {
         var authProvider = (CustomAuthStateProvider)AuthProvider;
-        authProvider.Logout();
-
+        await authProvider.Logout(); // Await er vigtig
         NavManager.NavigateTo("/", forceLoad: true);
     }
 }
