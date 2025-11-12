@@ -1,0 +1,61 @@
+﻿.internal-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.internal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 3.5rem;
+    background-color: #000;
+    border-bottom: 1px solid #333;
+}
+
+.nav-brand {
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    text-transform: uppercase;
+    color: #fff;
+    font-size: 1.1rem;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+}
+
+.nav-link {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #888;
+    text-decoration: none;
+    padding: 0 1rem;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+    .nav-link:hover {
+        color: #fff;
+    }
+
+    /* Viser den aktive side */
+    .nav-link.active {
+        color: #fff;
+    }
+
+    /* Styling af "Log Ud"-linket */
+    .nav-link.logout {
+        color: #dc3545; /* Rød */
+    }
+
+        .nav-link.logout:hover {
+            color: #ff4d60;
+        }
+
+/* Selve sidens indhold */
+.internal-content {
+    flex: 1;
+    padding: 2rem;
+}

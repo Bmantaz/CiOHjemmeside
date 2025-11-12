@@ -1,0 +1,23 @@
+﻿@inherits LayoutComponentBase
+
+<link rel="stylesheet" href="Components/Layout/InternalLayout.razor.css" />
+
+<div class="internal-page">
+
+    <nav class="internal-nav">
+        <div class="nav-brand">
+            CIO Dashboard
+        </div>
+        <div class="nav-links">
+            <NavLink class="nav-link" href="dashboard">Kalender</NavLink>
+            <NavLink class="nav-link" href="sales">Sales</NavLink>
+            <NavLink class="nav-link" href="users">Brugerstyring</NavLink>
+
+            <a class="nav-link logout" href="/">Log Ud</a>
+        </div>
+    </nav>
+
+    <main class="internal-content">
+        @Body
+    </main>
+</div>

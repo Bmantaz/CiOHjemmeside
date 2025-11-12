@@ -1,7 +1,71 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<link rel="stylesheet" href="Components/Pages/Home.razor.css" />
 
-<h1>Hello, world!</h1>
+<PageTitle>Home - Cursed Into Oblivion</PageTitle>
 
-Welcome to your new app.
+<div class="homepage-section text-center">
+    <img src="/images/CIOTEXT.png" alt="Cursed Into Oblivion Logo" class="header-logo" />
+</div>
+
+<div class="homepage-section text-container">
+    <p>Det danske metalcore band Cursed Into Oblivion har udgivet deres debutalbum, LIFE.</p>
+    <p>Bandet kombinerer moderne metalcore med klassisk thrash metal, og inddrager elementer fra både klassisk og elektronisk musik for at skabe en intens og eksperimentel lyd.</p>
+
+    <img src="/images/Fullbodylogo.jpg" alt="Cursed Into Oblivion Bandfoto" class="inline-image" />
+
+    <h3>Self-Produced and Passion-Driven Work</h3>
+    <p>Albummet er skrevet med passion over et år og er 100% self-produced af de tre medlemmer. Med 11 tracks, LIFE marks a major milestone for the band, who have succeeded in crafting a unique and distinctive expression.</p>
+
+    <h3>A Musical Journey</h3>
+    <p>Albummet tager lytteren på en rejse through powerful guitar riffs, energetic drum patterns, and dynamic vocal variations ranging from deep growls to intense, melodic screams. Each song is a testament to the band’s dedication and their willingness to push musical boundaries.</p>
+
+    <h3>An Experimental Sonic Universe</h3>
+    <p>With LIFE, Cursed Into Oblivion explores not only the raw and heavy sides of metal genres but also integrates classical and electronic elements to craft a soundscape that stands out on the modern metal scene. The album delivers lyrical depth and musical complexity, highlighting the band’s versatility and ambition.</p>
+
+    <h3>Ready for the Stage</h3>
+    <p>With this debut album, Cursed Into Oblivion is ready to take the music scene by storm and cement their place as one of the most exciting new acts in the metal world. Fans of both old-school thrash and modern metalcore will find something to dive into on this epic sonic journey.</p>
+    <p>LIFE is now available on all major streaming platforms.</p>
+</div>
+
+<div class="homepage-section">
+    <img src="/images/CloseUp.jpg" alt="Cursed Into Oblivion Bandfoto Close-up" class="inline-image" />
+</div>
+
+
+<div class="homepage-section spotify-embed">
+    <h3>LYT TIL "LIFE"</h3>
+
+    <iframe class="spotify-iframe"
+            src="https://open.spotify.com/artist/0UHWo7NpNBWTomTYIBS340&theme=0"
+            frameBorder="0"
+            allowfullscreen=""
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"></iframe>
+</div>
+
+
+<div class="homepage-section">
+    <h2>UPCOMING</h2>
+
+    <ul class="concert-list">
+        <li class="concert-item">
+            <span class="concert-date">20. DEC 2025</span>
+            <span class="concert-venue">RADAR</span>
+            <span class="concert-location">AARHUS, DK</span>
+            <a href="#" class="concert-ticket-link">[TICKETS]</a>
+        </li>
+        <li class="concert-item">
+            <span class="concert-date">10. JAN 2026</span>
+            <span class="concert-venue">STENGADE</span>
+            <span class="concert-location">KØBENHAVN, DK</span>
+            <span class="concert-sold-out">[SOLD OUT]</span>
+        </li>
+        <li class="concert-item">
+            <span class="concert-date">14. FEB 2026</span>
+            <span class="concert-venue">KANSAS CITY</span>
+            <span class="concert-location">ODENSE, DK</span>
+            <a href="#" class="concert-ticket-link">[TICKETS]</a>
+        </li>
+    </ul>
+</div>

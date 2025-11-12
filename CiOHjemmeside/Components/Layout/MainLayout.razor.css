@@ -6,15 +6,20 @@
 
 main {
     flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    /* Fjernet gradient - sidebaren er nu solid mørk */
+    background-color: #000000;
+    border-right: 1px solid #222;
 }
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
+    /* Rettet til mørkt tema */
+    background-color: #121212;
+    border-bottom: 1px solid #222;
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
@@ -25,25 +30,50 @@ main {
         white-space: nowrap;
         margin-left: 1.5rem;
         text-decoration: none;
+        color: #888; /* Gør 'About'-linket diskret */
     }
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
+        .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
+            text-decoration: underline;
+            color: #fff;
+        }
+
+        .top-row ::deep a:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+/* NYT TILFØJET: Styling til footer og det skjulte login-link */
+.main-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #222;
+    margin-top: auto; /* Skubber footeren til bunden af 'main' */
+    text-align: center;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+    .main-footer .login-link {
+        color: #777;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: bold;
     }
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+        .main-footer .login-link:hover {
+            color: #fff;
+        }
+
 
 @media (max-width: 640.98px) {
     .top-row {
         justify-content: space-between;
     }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+        .top-row ::deep a, .top-row ::deep .btn-link {
+            margin-left: 0;
+        }
 }
 
 @media (min-width: 641px) {
@@ -64,20 +94,28 @@ main {
         z-index: 1;
     }
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
+        .top-row.auth ::deep a:first-child {
+            flex: 1;
+            text-align: right;
+            width: 0;
+        }
 
     .top-row, article {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
+    }
+
+    .main-footer {
+        /* Juster padding til at matche article */
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
 }
 
 #blazor-error-ui {
-    background: lightyellow;
+    /* Rettet til mørkt tema */
+    background: #330000;
+    border-top: 1px solid #dc3545;
     bottom: 0;
     box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
     display: none;

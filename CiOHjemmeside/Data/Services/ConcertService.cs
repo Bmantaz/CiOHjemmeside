@@ -3,9 +3,6 @@ using Dapper;
 
 namespace CiOHjemmeside.Data.Services
 {
-    /// <summary>
-    /// Håndterer dataadgang for Concerts ved hjælp af Dapper.
-    /// </summary>
     public class ConcertService : IConcertService
     {
         private readonly IDbConnectionFactory _connectionFactory;
@@ -19,22 +16,21 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            // Vi bruger store bogstaver for tabel- og kolonnenavne for at matche
-            // din SQL-definition, da PostgreSQL er case-sensitiv.
+            // Rettet: Alle tabel- og kolonnenavne er nu i lowercase og uden ""
+            // Dapper vil automatisk mappe 'venuename' til 'VenueName' osv.
             var sql = @"
                 SELECT 
-                    ""Id"", 
-                    ""VenueName"", 
-                    ""City"", 
-                    ""Country"", 
-                    ""EventDate"", 
-                    ""TicketLink"", 
-                    ""IsSoldOut""
-                FROM ""Concerts""
-                WHERE ""EventDate"" >= @CurrentDate 
-                ORDER BY ""EventDate"" ASC";
+                    id, 
+                    venuename, 
+                    city, 
+                    country, 
+                    eventdate, 
+                    ticketlink, 
+                    issoldout
+                FROM concerts
+                WHERE eventdate >= @CurrentDate 
+                ORDER BY eventdate ASC";
 
-            // Vi bruger UTC for at sikre konsistens på tværs af tidszoner
             return await connection.QueryAsync<Concert>(sql, new { CurrentDate = DateTime.UtcNow });
         }
     }

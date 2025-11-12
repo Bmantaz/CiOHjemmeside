@@ -1,0 +1,154 @@
+﻿@page "/datatest"
+@rendermode InteractiveServer
+@* ^^^ DENNE LINJE ER TILFØJET FOR AT AKTIVERE ASYNKRON INDLÆSNING ^^^ *@
+
+@attribute [StreamRendering]
+
+@using System.Diagnostics
+
+@inject IUserService UserService
+@inject IConcertService ConcertService
+@inject IMerchandiseService MerchandiseService
+@inject ICalendarEventService CalendarEventService
+
+<PageTitle>Fase 1 Data Test</PageTitle>
+
+<h1>Data-lag Test (Fase 1 Validering)</h1>
+<p>Denne side tester forbindelsen til Neon.Tech-databasen via Dapper-services.</p>
+<hr />
+
+<h3>Testresultater:</h3>
+
+@if (isLoading)
+{
+    <p><em>Tester services...</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <strong>UserService.GetAllAsync()</strong>
+        <pre class="@(string.IsNullOrEmpty(userError) ? "text-success" : "text-danger")">@userStatus</pre>
+        @if (!string.IsNullOrEmpty(userError))
+        {
+            <pre class="text-danger small">@userError</pre>
+        }
+    </div>
+
+    <div class="mb-3">
+        <strong>ConcertService.GetUpcomingConcertsAsync()</strong>
+        <pre class="@(string.IsNullOrEmpty(concertError) ? "text-success" : "text-danger")">@concertStatus</pre>
+        @if (!string.IsNullOrEmpty(concertError))
+        {
+            <pre class="text-danger small">@concertError</pre>
+        }
+    </div>
+
+    <div class="mb-3">
+        <strong>MerchandiseService.GetAllAsync()</strong>
+        <pre class="@(string.IsNullOrEmpty(merchError) ? "text-success" : "text-danger")">@merchStatus</pre>
+        @if (!string.IsNullOrEmpty(merchError))
+        {
+            <pre class="text-danger small">@merchError</pre>
+        }
+    </div>
+
+    <div class="mb-3">
+        <strong>CalendarEventService.GetEventsForPeriodAsync()</strong>
+        <pre class="@(string.IsNullOrEmpty(calendarError) ? "text-success" : "text-danger")">@calendarStatus</pre>
+        @if (!string.IsNullOrEmpty(calendarError))
+        {
+            <pre class="text-danger small">@calendarError</pre>
+        }
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private string userStatus = "";
+    private string userError = "";
+    private string concertStatus = "";
+    private string concertError = "";
+    private string merchStatus = "";
+    private string merchError = "";
+    private string calendarStatus = "";
+    private string calendarError = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var sw = new Stopwatch();
+
+        // Test UserService
+        try
+        {
+            sw.Start();
+            var users = await UserService.GetAllAsync();
+            sw.Stop();
+            userStatus = $"OK - Hentede {users.Count()} brugere på {sw.ElapsedMilliseconds} ms.";
+        }
+        catch (Exception ex)
+        {
+            userStatus = "FEJL";
+            userError = ex.Message;
+        }
+        finally
+        {
+            sw.Reset();
+        }
+
+        // Test ConcertService
+        try
+        {
+            sw.Start();
+            var concerts = await ConcertService.GetUpcomingConcertsAsync();
+            sw.Stop();
+            concertStatus = $"OK - Hentede {concerts.Count()} koncerter på {sw.ElapsedMilliseconds} ms.";
+        }
+        catch (Exception ex)
+        {
+            concertStatus = "FEJL";
+            concertError = ex.Message;
+        }
+        finally
+        {
+            sw.Reset();
+        }
+
+        // Test MerchandiseService
+        try
+        {
+            sw.Start();
+            var items = await MerchandiseService.GetAllAsync();
+            sw.Stop();
+            merchStatus = $"OK - Hentede {items.Count()} emner på {sw.ElapsedMilliseconds} ms.";
+        }
+        catch (Exception ex)
+        {
+            merchStatus = "FEJL";
+            merchError = ex.Message;
+        }
+        finally
+        {
+            sw.Reset();
+        }
+
+        // Test CalendarEventService (Henter sidste 5 år og næste 5 år for at fange alt)
+        try
+        {
+            sw.Start();
+            var events = await CalendarEventService.GetEventsForPeriodAsync(DateTime.UtcNow.AddYears(-5), DateTime.UtcNow.AddYears(5));
+            sw.Stop();
+            calendarStatus = $"OK - Hentede {events.Count()} events på {sw.ElapsedMilliseconds} ms.";
+        }
+        catch (Exception ex)
+        {
+            calendarStatus = "FEJL";
+            calendarError = ex.Message;
+        }
+        finally
+        {
+            sw.Reset();
+        }
+
+        isLoading = false;
+    }
+}

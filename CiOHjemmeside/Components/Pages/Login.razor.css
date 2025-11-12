@@ -1,0 +1,81 @@
+﻿/* Containeren dækker hele skærmen */
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh; /* Kræver height: 100% på html, body */
+    background-color: #000;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 400px;
+    padding: 2rem;
+    background-color: #121212; /* Lidt lysere end baggrunden */
+    border: 1px solid #333;
+}
+
+h1 {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    letter-spacing: 2px;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: .5rem;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+/* Styling af input-felter så de matcher det mørke tema */
+.form-control {
+    background-color: #0a0a0a;
+    color: #f0f0f0;
+    border: 1px solid #333;
+    border-radius: 0; /* Brutalistisk look */
+    font-size: 1.2rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+    .form-control:focus {
+        background-color: #000;
+        color: #fff;
+        border-color: #fff;
+        box-shadow: none;
+    }
+
+/* Login-knappen */
+.btn-login {
+    width: 100%;
+    padding: 0.75rem;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 1rem;
+    color: #000;
+    background-color: #fff;
+    border: 1px solid #fff;
+    border-radius: 0;
+    transition: all 0.2s ease-in-out;
+}
+
+    .btn-login:hover {
+        background-color: #ccc;
+        color: #000;
+        border-color: #ccc;
+    }
+
+/* Fejlmeddelelse (til Fase 3) */
+.login-error {
+    color: #dc3545; /* Rød fejlfarve */
+    text-align: center;
+    margin-bottom: 1rem;
+    font-family: Arial, Helvetica, sans-serif;
+}

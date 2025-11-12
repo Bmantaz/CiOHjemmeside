@@ -2,9 +2,8 @@
 
 namespace CiOHjemmeside.Data.Models
 {
-    // Da tabellen hedder 'Merchandise' og klassen hedder 'MerchandiseItem',
-    // tilføjer vi [Table] attributten for at sikre korrekt mapping.
-    [Table("Merchandise")]
+    // Rettet fra [Table("Merchandise")] til [Table("merchandise")]
+    [Table("merchandise")]
     public class MerchandiseItem
     {
         public int Id { get; set; }

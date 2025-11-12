@@ -1,0 +1,117 @@
+﻿/* Header-styling (Måned + knapper) */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+    .calendar-header h2 {
+        margin: 0;
+        color: #fff;
+    }
+
+.btn-nav {
+    background: none;
+    border: 1px solid #555;
+    color: #fff;
+    font-size: 1.5rem;
+    padding: 0.25rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .btn-nav:hover {
+        background-color: #333;
+        border-color: #777;
+    }
+
+/* Selve kalender-grid'et */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 kolonner til ugedage */
+    gap: 1px;
+    background-color: #333; /* Gitter-linjer */
+    border: 1px solid #333;
+}
+
+.calendar-day-header {
+    background-color: #0a0a0a;
+    color: #888;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.calendar-day {
+    min-height: 120px;
+    background-color: #121212;
+    padding: 0.5rem;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+    .calendar-day:hover {
+        background-color: #1f1f1f;
+    }
+
+/* Dage fra forrige/næste måned (tomme felter) */
+.other-month {
+    background-color: #0a0a0a;
+    cursor: default;
+}
+
+.day-number {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    color: #999;
+}
+
+/* Fremhæv i dag */
+.today {
+    background-color: #181818;
+}
+
+    .today .day-number {
+        color: #fff;
+        font-weight: bold;
+    }
+
+/* Event-visning (chips) */
+.day-events {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.event-chip {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    background-color: #555;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+    /* Farver baseret på EventType */
+    .event-chip.practice {
+        background-color: #0d6efd; /* Blå */
+    }
+
+    .event-chip.gig {
+        background-color: #dc3545; /* Rød */
+    }
+
+    .event-chip.discord {
+        background-color: #198754; /* Grøn */
+    }
+
+    .event-chip.other {
+        background-color: #6c757d; /* Grå */
+    }

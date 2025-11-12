@@ -1,0 +1,137 @@
+﻿/* NY STYLING TIL BILLEDER */
+.header-logo {
+    max-width: 700px; /* Sætter en max-bredde på logoet */
+    width: 100%; /* Gør det responsivt */
+    height: auto;
+    margin-bottom: 1.5rem; /* Lidt luft ned til H2 */
+}
+
+.inline-image {
+    width: 100%;
+    height: auto;
+    margin: 2rem 0; /* God afstand over/under billedet */
+    border: 1px solid #222; /* Passer til det 'brutale' tema */
+}
+
+
+/* Generel sektions-styling */
+.homepage-section {
+    max-width: 800px;
+    margin: 3rem auto;
+    padding: 1rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Styling til brødtekst-containeren */
+.text-container {
+    font-family: Arial, Helvetica, sans-serif; /* Skifter til en ren brødtekst-font */
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #f0f0f0;
+}
+
+    .text-container h3 {
+        margin-top: 2rem;
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+        letter-spacing: 1px;
+    }
+
+/* Spotify Iframe Wrapper */
+.spotify-embed {
+    border-top: 1px solid #333;
+    border-bottom: 1px solid #333;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    text-align: center;
+}
+
+    .spotify-embed h3 {
+        margin-bottom: 1.5rem;
+    }
+
+/* NY KLASSE TIL IFRAME (RETTER HTML0209) */
+.spotify-iframe {
+    border-radius: 12px;
+    width: 100%;
+    height: 352px;
+}
+
+
+/* Koncertliste (Minimalistisk/Brutal) */
+.concert-list {
+    list-style: none;
+    padding: 0;
+    font-family: 'Arial Black', 'Impact', sans-serif; /* Tilbage til den rå font */
+    text-transform: uppercase;
+    font-size: 1.2rem;
+}
+
+.concert-item {
+    display: flex;
+    flex-wrap: wrap; /* Gør den responsiv til mobil */
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #222;
+}
+
+    .concert-item:first-of-type {
+        border-top: 1px solid #222;
+    }
+
+.concert-date {
+    width: 180px;
+    color: #fff;
+}
+
+.concert-venue {
+    flex: 1;
+    min-width: 150px;
+    padding: 0 1rem;
+    color: #fff;
+}
+
+.concert-location {
+    width: 160px;
+    color: #888; /* Dæmpet lokation */
+}
+
+.concert-ticket-link {
+    width: 100px;
+    text-align: right;
+    font-weight: bold;
+    color: #fff;
+    text-decoration: none;
+}
+
+    .concert-ticket-link:hover {
+        color: #ddd;
+    }
+
+.concert-sold-out {
+    width: 100px;
+    text-align: right;
+    font-weight: bold;
+    color: #dc3545; /* Rød for "Sold Out" */
+}
+
+/* Mobil-optimering af koncertliste */
+@media (max-width: 768px) {
+    .concert-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .concert-date, .concert-venue, .concert-location, .concert-ticket-link, .concert-sold-out {
+        width: 100%;
+        padding: 0.25rem 0;
+        text-align: left;
+    }
+
+    .concert-location {
+        font-size: 1rem;
+    }
+}

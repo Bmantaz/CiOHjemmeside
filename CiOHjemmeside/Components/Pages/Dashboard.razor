@@ -1,0 +1,127 @@
+﻿@page "/dashboard"
+@layout Layout.InternalLayout
+@rendermode InteractiveServer
+
+<link rel="stylesheet" href="Components/Pages/Dashboard.razor.css" />
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="calendar-header">
+    <button class="btn-nav" @onclick="PreviousMonth">&lt;</button>
+    <h2>@currentDate.ToString("MMMM yyyy")</h2>
+    <button class="btn-nav" @onclick="NextMonth">&gt;</button>
+</div>
+
+<div class="calendar-grid">
+    <div class="calendar-day-header">Mandag</div>
+    <div class="calendar-day-header">Tirsdag</div>
+    <div class="calendar-day-header">Onsdag</div>
+    <div class="calendar-day-header">Torsdag</div>
+    <div class="calendar-day-header">Fredag</div>
+    <div class="calendar-day-header">Lørdag</div>
+    <div class="calendar-day-header">Søndag</div>
+
+    @for (int i = 0; i < startDayOffset; i++)
+    {
+        <div class="calendar-day other-month"></div>
+    }
+
+    @foreach (var day in daysInMonth)
+    {
+        <div class="calendar-day @(day.Date == DateTime.Today ? "today" : "")" @onclick="() => DateClicked(day)">
+            <div class="day-number">@day.Day</div>
+            <div class="day-events">
+                @foreach (var ev in GetEventsForDay(day))
+                {
+                    <div class="event-chip @ev.EventType.ToLower()">@ev.Title</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DateTime currentDate = DateTime.Now;
+    private List<DateTime> daysInMonth = new();
+    private int startDayOffset = 0;
+
+    // Fase 2: Dummy data
+    private List<CalendarEvent> events = new List<CalendarEvent>
+    {
+        new CalendarEvent
+        {
+            Id = 1,
+            Title = "Øver",
+            EventType = "Practice",
+            StartTime = DateTime.Now.AddDays(1).Date.AddHours(19),
+            Notes = "Gennemgang af nyt materiale"
+        },
+        new CalendarEvent
+        {
+            Id = 2,
+            Title = "Gig: Stengade",
+            EventType = "Gig",
+            StartTime = DateTime.Now.AddDays(3).Date.AddHours(21),
+            Notes = "Soundcheck kl 18:00"
+        },
+        new CalendarEvent
+        {
+            Id = 3,
+            Title = "Discord Møde",
+            EventType = "Discord",
+            StartTime = DateTime.Now.AddDays(-2).Date.AddHours(20),
+        },
+        new CalendarEvent
+        {
+            Id = 4,
+            Title = "Releasefest",
+            EventType = "Other",
+            StartTime = DateTime.Now.AddDays(1).Date.AddHours(22),
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        BuildCalendar();
+    }
+
+    private void BuildCalendar()
+    {
+        daysInMonth.Clear();
+        var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+        int days = DateTime.DaysInMonth(currentDate.Year, currentDate.Month);
+
+        // Beregn offset. Vi justerer, så mandag = 0
+        startDayOffset = (int)firstDayOfMonth.DayOfWeek;
+        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1; // Konverterer søndag (0) til 6, og resten rykkes 1 ned
+
+        for (int i = 1; i <= days; i++)
+        {
+            daysInMonth.Add(new DateTime(currentDate.Year, currentDate.Month, i));
+        }
+    }
+
+    private IEnumerable<CalendarEvent> GetEventsForDay(DateTime day)
+    {
+        // Finder events, hvor StartTime er på den pågældende dato
+        return events.Where(e => e.StartTime.Date == day.Date).OrderBy(e => e.StartTime);
+    }
+
+    private void DateClicked(DateTime date)
+    {
+        Console.WriteLine($"Dato klikket: {date.ToShortDateString()}");
+        // I Fase 3 åbner vi en modal for at oprette en ny event her
+    }
+
+    private void PreviousMonth()
+    {
+        currentDate = currentDate.AddMonths(-1);
+        BuildCalendar();
+    }
+
+    private void NextMonth()
+    {
+        currentDate = currentDate.AddMonths(1);
+        BuildCalendar();
+    }
+}

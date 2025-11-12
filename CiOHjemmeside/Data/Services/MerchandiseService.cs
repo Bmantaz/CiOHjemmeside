@@ -15,27 +15,27 @@ namespace CiOHjemmeside.Data.Services
         public async Task<IEnumerable<MerchandiseItem>> GetAllAsync()
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-
-            // SQL'en bruger de case-sensitive navne fra din skema-definition.
-            // Modellen MerchandiseItem mappes til "Merchandise"-tabellen via [Table]-attributten.
-            var sql = @"SELECT * FROM ""Merchandise"" ORDER BY ""ItemName"" ASC";
+            // Rettet til lowercase
+            var sql = @"SELECT * FROM merchandise ORDER BY itemname ASC";
             return await connection.QueryAsync<MerchandiseItem>(sql);
         }
 
         public async Task<MerchandiseItem?> GetByIdAsync(int id)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            var sql = @"SELECT * FROM ""Merchandise"" WHERE ""Id"" = @Id";
+            // Rettet til lowercase
+            var sql = @"SELECT * FROM merchandise WHERE id = @Id";
             return await connection.QuerySingleOrDefaultAsync<MerchandiseItem>(sql, new { Id = id });
         }
 
         public async Task<int> AddAsync(MerchandiseItem item)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
+            // Rettet til lowercase
             var sql = @"
-                INSERT INTO ""Merchandise"" (""ItemName"", ""Description"", ""StockQuantity"", ""Price"")
+                INSERT INTO merchandise (itemname, description, stockquantity, price)
                 VALUES (@ItemName, @Description, @StockQuantity, @Price)
-                RETURNING ""Id"""; // RETURNING "Id" henter det auto-genererede ID tilbage.
+                RETURNING id";
 
             return await connection.QuerySingleAsync<int>(sql, item);
         }
@@ -43,22 +43,24 @@ namespace CiOHjemmeside.Data.Services
         public async Task<bool> UpdateAsync(MerchandiseItem item)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
+            // Rettet til lowercase
             var sql = @"
-                UPDATE ""Merchandise"" SET
-                    ""ItemName"" = @ItemName,
-                    ""Description"" = @Description,
-                    ""StockQuantity"" = @StockQuantity,
-                    ""Price"" = @Price
-                WHERE ""Id"" = @Id";
+                UPDATE merchandise SET
+                    itemname = @ItemName,
+                    description = @Description,
+                    stockquantity = @StockQuantity,
+                    price = @Price
+                WHERE id = @Id";
 
             var affectedRows = await connection.ExecuteAsync(sql, item);
-            return affectedRows > 0; // Returnerer true hvis 1 (eller flere) rækker blev opdateret
+            return affectedRows > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            var sql = @"DELETE FROM ""Merchandise"" WHERE ""Id"" = @Id";
+            // Rettet til lowercase
+            var sql = @"DELETE FROM merchandise WHERE id = @Id";
             var affectedRows = await connection.ExecuteAsync(sql, new { Id = id });
             return affectedRows > 0;
         }

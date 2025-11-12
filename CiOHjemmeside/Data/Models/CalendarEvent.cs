@@ -2,7 +2,8 @@
 
 namespace CiOHjemmeside.Data.Models
 {
-    [Table("CalendarEvents")]
+    // Rettet fra [Table("CalendarEvents")] til [Table("calendarevents")]
+    [Table("calendarevents")]
     public class CalendarEvent
     {
         public int Id { get; set; }
@@ -16,8 +17,6 @@ namespace CiOHjemmeside.Data.Models
         // Foreign Key
         public int CreatedByUserId { get; set; }
 
-        // Valgfri navigationsegenskab.
-        // Dapper ignorerer denne, medmindre vi laver en specifik JOIN.
         [NotMapped]
         public User? CreatedByUser { get; set; }
     }

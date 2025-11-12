@@ -1,0 +1,98 @@
+﻿@page "/seeddb"
+@rendermode InteractiveServer
+@* ^^^ DENNE LINJE ER TILFØJET FOR AT AKTIVERE KNAPPEN ^^^ *@
+
+@inject IUserService UserService
+
+<PageTitle>Seed Database</PageTitle>
+
+<h1>Seed Database med Brugere</h1>
+<p>Klik på knappen for at indsætte de 6 standardbrugere i 'users'-tabellen.</p>
+<p>Siden tjekker, om brugerne allerede eksisterer, så den er sikker at køre flere gange.</p>
+
+<button class="btn btn-primary" @onclick="SeedDatabase" disabled="@isProcessing">
+    @if (isProcessing)
+    {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span> Seeder...</span>
+    }
+    else
+    {
+        <span>Start Seeding</span>
+    }
+</button>
+
+@if (logMessages.Any())
+{
+    <h3 class="mt-4">Log:</h3>
+    <ul class="list-group">
+        @foreach (var msg in logMessages)
+        {
+            <li class="list-group-item @(msg.Contains("FEJL") ? "list-group-item-danger" : "list-group-item-success")">
+                @msg
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<string> logMessages = new();
+    private bool isProcessing = false;
+
+    private async Task SeedDatabase()
+    {
+        isProcessing = true;
+        logMessages.Clear();
+        StateHasChanged();
+
+        var usersToSeed = new List<(string Username, string Role)>
+        {
+            ("Bjarke", "Admin"),
+            ("Kristofer", "Member"),
+            ("Henrik", "Member"),
+            ("Michal", "Member"),
+            ("Sebastian", "Member"),
+            ("Sales", "Sales")
+        };
+
+        var rawPassword = "Password123!";
+
+        // Vi hasher adgangskoden sikkert med BCrypt.
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(rawPassword);
+        logMessages.Add($"Hashing af adgangskode '{rawPassword}'... Komplet.");
+
+        foreach (var (username, role) in usersToSeed)
+        {
+            try
+            {
+                // Tjek om brugeren allerede eksisterer (idempotent)
+                var existingUser = await UserService.GetByUsernameAsync(username);
+                if (existingUser == null)
+                {
+                    var newUser = new User
+                    {
+                        Username = username,
+                        PasswordHash = passwordHash,
+                        Role = role
+                    };
+
+                    int newId = await UserService.AddAsync(newUser);
+                    logMessages.Add($"SUCCESS: Bruger '{username}' (Role: {role}) oprettet med ID: {newId}.");
+                }
+                else
+                {
+                    logMessages.Add($"INFO: Bruger '{username}' eksisterer allerede. Springer over.");
+                }
+            }
+            catch (Exception ex)
+            {
+                logMessages.Add($"FEJL ved oprettelse af '{username}': {ex.Message}");
+            }
+            StateHasChanged(); // Opdater UI efter hver bruger
+        }
+
+        logMessages.Add("Seeding afsluttet.");
+        isProcessing = false;
+        StateHasChanged();
+    }
+}
