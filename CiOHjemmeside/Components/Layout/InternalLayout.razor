@@ -2,36 +2,44 @@
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavManager
 
-<link rel="stylesheet" href="Components/Layout/InternalLayout.razor.css" />
+<AuthorizeView>
+    <Authorized>
+        <div class="internal-page">
+            <nav class="internal-nav">
+                <div class="nav-brand">
+                    CIO Dashboard
+                </div>
+                <div class="nav-links">
+                    <NavLink class="nav-link" href="dashboard">Kalender</NavLink>
+                    <NavLink class="nav-link" href="sales">Sales</NavLink>
 
-<div class="internal-page">
-    <nav class="internal-nav">
-        <div class="nav-brand">
-            CIO Dashboard
+                    <AuthorizeView Roles="Admin" Context="adminContext">
+                        <Authorized>
+                            <NavLink class="nav-link" href="users">Brugerstyring</NavLink>
+                        </Authorized>
+                    </AuthorizeView>
+
+                    <button class="nav-link logout-button" @onclick="HandleLogout">Log Ud</button>
+                </div>
+            </nav>
+
+            <main class="internal-content">
+                @Body
+            </main>
         </div>
-        <div class="nav-links">
-            <NavLink class="nav-link" href="dashboard">Kalender</NavLink>
-            <NavLink class="nav-link" href="sales">Sales</NavLink>
+    </Authorized>
 
-            <AuthorizeView Roles="Admin">
-                <NavLink class="nav-link" href="users">Brugerstyring</NavLink>
-            </AuthorizeView>
-
-            <button class="nav-link logout-button" @onclick="HandleLogout">Log Ud</button>
-        </div>
-    </nav>
-
-    <main class="internal-content">
-        @Body
-    </main>
-</div>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
-    // RETTET: Kalder nu den nye Logout-metode, der sletter cookien
-    private async Task HandleLogout()
+    private void HandleLogout()
     {
         var authProvider = (CustomAuthStateProvider)AuthProvider;
-        await authProvider.Logout(); // Await er vigtig
-        NavManager.NavigateTo("/", forceLoad: true);
+        authProvider.Logout();
+
+        NavManager.NavigateTo("/login", forceLoad: true);
     }
 }

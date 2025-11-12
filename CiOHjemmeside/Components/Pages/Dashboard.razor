@@ -2,8 +2,6 @@
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
 
-<link rel="stylesheet" href="Components/Pages/Dashboard.razor.css" />
-
 @inject ICalendarEventService CalendarEventService
 @inject IUserService UserService
 @inject NavigationManager NavManager
@@ -56,11 +54,11 @@
             <h3>@modalTitle</h3>
             <button class="btn-close-modal" @onclick="CloseModal">×</button>
         </div>
-        
+
         <EditForm Model="currentEvent" OnValidSubmit="HandleSave">
             <DataAnnotationsValidator />
             <div class="modal-body">
-                
+
                 <div class="form-group-modal">
                     <label>Titel</label>
                     <InputText class="form-control-modal" @bind-Value="currentEvent.Title" />
@@ -95,7 +93,7 @@
                     <InputTextArea rows="4" class="form-control-modal" @bind-Value="currentEvent.Notes" />
                 </div>
             </div>
-            
+
             <div class="modal-footer">
                 <div>
                     @if (!isCreatingNewUser)
@@ -106,8 +104,15 @@
                 <div class="modal-footer-right">
                     <button type="button" class="btn btn-cancel" @onclick="CloseModal">Annuller</button>
                     <button type="submit" class="btn btn-save" disabled="@isProcessingSave">
-                        @if (isProcessingSave) { <span class="spinner-border spinner-border-sm"></span> }
-                        else { <span>Gem</span> }
+                        @if (isProcessingSave)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        else
+                        {
+
+                            <span>Gem</span>
+                        }
                     </button>
                 </div>
             </div>
@@ -132,7 +137,7 @@
     private CalendarEvent currentEvent = new();
     private bool isCreatingNewUser = true;
     private bool isProcessingSave = false;
-    
+
     private DateTime? nullableEndTime
     {
         get => currentEvent.EndTime;
@@ -144,16 +149,13 @@
         var authState = await AuthState;
         var user = authState.User;
 
-        // RETTET: Vi fjerner 'else'-blokken. Routes.razor håndterer redirect.
-        // Vi skal KUN hente bruger-ID'et, hvis vi er logget ind.
         if (user.Identity?.IsAuthenticated == true)
         {
             var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
             _currentUserId = !string.IsNullOrEmpty(userIdClaim) ? int.Parse(userIdClaim) : 0;
         }
+        // FJERNET: 'else'-blokken, der lavede redirect-loop
 
-        // Fortsæt med at bygge kalenderen uanset hvad
-        // (Selvom [Authorize] attributten allerede har stoppet anonyme brugere)
         BuildCalendar();
         await LoadEventsAsync();
     }
@@ -162,9 +164,9 @@
     {
         var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
         var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
-        
+
         events = (await CalendarEventService.GetEventsForPeriodAsync(firstDayOfMonth, lastDayOfMonth)).ToList();
-        
+
         StateHasChanged();
     }
 
@@ -175,7 +177,7 @@
         int days = DateTime.DaysInMonth(currentDate.Year, currentDate.Month);
 
         startDayOffset = (int)firstDayOfMonth.DayOfWeek;
-        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1; 
+        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1;
 
         for (int i = 1; i <= days; i++)
         {
@@ -211,7 +213,7 @@
     {
         isCreatingNewUser = false;
         modalTitle = "Rediger Event";
-        
+
         currentEvent = new CalendarEvent
         {
             Id = ev.Id,

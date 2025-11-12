@@ -1,84 +1,85 @@
 ﻿using CiOHjemmeside.Data.Services;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Claims;
 
 namespace CiOHjemmeside.Data.Auth
 {
-    // Denne provider håndterer nu BÅDE Blazor state og HTTP Cookie state
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
         private readonly IUserService _userService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ProtectedSessionStorage _sessionStorage;
+        private ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
+        private const string AuthStorageKey = "CiO-AuthState";
 
-        public CustomAuthStateProvider(IUserService userService, IHttpContextAccessor httpContextAccessor)
+        public CustomAuthStateProvider(IUserService userService, ProtectedSessionStorage sessionStorage)
         {
             _userService = userService;
-            _httpContextAccessor = httpContextAccessor;
+            _sessionStorage = sessionStorage;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            // Henter brugeren fra HTTP-kontekstens cookie
-            var user = _httpContextAccessor.HttpContext?.User;
-
-            if (user == null || !user.Identity.IsAuthenticated)
+            try
             {
-                // Bruger er anonym
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                // Forsøg at hente auth state fra session storage
+                var result = await _sessionStorage.GetAsync<string[]>(AuthStorageKey);
+
+                if (result.Success && result.Value != null && result.Value.Length == 3)
+                {
+                    var claims = new[]
+                    {
+                        new Claim(ClaimTypes.Name, result.Value[0]),
+                        new Claim(ClaimTypes.Role, result.Value[1]),
+                        new Claim(ClaimTypes.NameIdentifier, result.Value[2])
+                    };
+
+                    var identity = new ClaimsIdentity(claims, "CiO-Auth", ClaimTypes.Name, ClaimTypes.Role);
+                    _currentUser = new ClaimsPrincipal(identity);
+                }
+            }
+            catch
+            {
+                // Hvis der er fejl ved at læse fra storage, fortsæt med tom bruger
             }
 
-            // Bruger er logget ind
-            return new AuthenticationState(user);
+            return new AuthenticationState(_currentUser);
         }
 
         public async Task<bool> LoginAsync(string username, string password)
         {
             var user = await _userService.GetByUsernameAsync(username);
-            if (user == null)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             {
-                return false; // Bruger findes ikke
+                return false;
             }
 
-            if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            {
-                return false; // Forkert adgangskode
-            }
-
-            // Opret claims (rettigheder)
             var claims = new[]
             {
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role), // "Admin", "Member", "Sales"
+                new Claim(ClaimTypes.Role, user.Role),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
 
-            var identity = new ClaimsIdentity(claims, "CiO-Auth"); // Matcher "CiO-Auth" fra Program.cs
-            var principal = new ClaimsPrincipal(identity);
+            var identity = new ClaimsIdentity(claims, "CiO-Auth", ClaimTypes.Name, ClaimTypes.Role);
+            _currentUser = new ClaimsPrincipal(identity);
 
-            // DEN VIGTIGE DEL: Logger brugeren ind i cookie-systemet
-            if (_httpContextAccessor.HttpContext != null)
-            {
-                await _httpContextAccessor.HttpContext.SignInAsync("CiO-Auth", principal);
-            }
+            // Gem auth state i session storage
+            await _sessionStorage.SetAsync(AuthStorageKey, new[] { user.Username, user.Role, user.Id.ToString() });
 
-            // Notificer Blazor om, at staten har ændret sig
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(principal)));
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
 
             return true;
         }
 
-        public async Task Logout()
+        public async void Logout()
         {
-            // Log ud af cookie-systemet
-            if (_httpContextAccessor.HttpContext != null)
-            {
-                await _httpContextAccessor.HttpContext.SignOutAsync("CiO-Auth");
-            }
+            _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
 
-            // Notificer Blazor om, at staten har ændret sig (til anonym)
-            var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymous)));
+            // Fjern auth state fra session storage
+            await _sessionStorage.DeleteAsync(AuthStorageKey);
+
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
         }
     }
 }

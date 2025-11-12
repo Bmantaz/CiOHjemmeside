@@ -2,9 +2,15 @@
 @inject NavigationManager NavigationManager
 
 @code {
-    protected override void OnInitialized()
+    private bool hasNavigated = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Tvinger en navigation til login-siden, hvis en uautoriseret bruger rammer en låst side.
-        NavigationManager.NavigateTo("/login");
+        if (firstRender && !hasNavigated)
+        {
+            hasNavigated = true;
+            // Tvinger en navigation til login-siden med forceLoad for at sikre clean state
+            NavigationManager.NavigateTo("/login", forceLoad: true);
+        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿@page "/users"
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
-@attribute [Authorize(Roles = "Admin")]
+@* FJERNET: @attribute [Authorize(Roles = "Admin")] *@
 
 @using System.Diagnostics
 @inject IUserService UserService
@@ -55,7 +55,7 @@
             <h3>@modalTitle</h3>
             <button class="btn-close-modal" @onclick="CloseModal">×</button>
         </div>
-        
+
         <EditForm Model="currentUser" OnValidSubmit="HandleSave">
             <DataAnnotationsValidator />
             <div class="modal-body">
@@ -65,7 +65,7 @@
                     <InputText class="form-control-modal" @bind-Value="currentUser.Username" disabled="@(!isCreatingNewUser)" />
                     <ValidationMessage For="() => currentUser.Username" />
                 </div>
-                
+
                 @if (isCreatingNewUser)
                 {
                     <div class="form-group-modal">
@@ -86,12 +86,19 @@
                     <ValidationMessage For="() => currentUser.Role" />
                 </div>
             </div>
-            
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-cancel" @onclick="CloseModal">Annuller</button>
                 <button type="submit" class="btn btn-save" disabled="@isProcessingSave">
-                    @if (isProcessingSave) { <span class="spinner-border spinner-border-sm"></span> }
-                    else { <span>Gem</span> }
+                    @if (isProcessingSave)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+
+                        <span>Gem</span>
+                    }
                 </button>
             </div>
         </EditForm>
@@ -113,7 +120,7 @@
             <span>Kør Test</span>
         }
     </button>
-    
+
     @if (testLog.Any())
     {
         <h3 class="mt-4">Testresultater:</h3>
@@ -140,7 +147,7 @@
     private bool isProcessingSave = false;
     private string modalTitle = "Rediger Bruger";
     private User currentUser = new();
-    private string newPassword = ""; 
+    private string newPassword = "";
 
     // OPDATERET (FASE 3): Kører nu OnInitializedAsync
     protected override async Task OnInitializedAsync()
@@ -201,7 +208,7 @@
                 // Opdater kun rolle (PasswordHash er uændret)
                 await UserService.UpdateAsync(currentUser);
             }
-        
+
             // Genindlæs listen fra databasen
             await LoadUsers();
             CloseModal();
@@ -209,7 +216,7 @@
         catch (Exception ex)
         {
             // Håndter fejl (f.eks. "Brugernavn findes allerede")
-            Console.WriteLine(ex.Message); 
+            Console.WriteLine(ex.Message);
             // I en rigtig app ville vi vise fejlen i modalen
         }
         finally
