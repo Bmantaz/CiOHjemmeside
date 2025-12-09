@@ -101,7 +101,6 @@
 @code {
     // Fase 2: Dummy data
     private List<ProductGroup> productGroups = new();
-
     // Kurven
     private List<(ProductGroup Group, ProductVariant Variant)> cart = new();
 
@@ -111,35 +110,43 @@
 
     protected override void OnInitialized()
     {
-        // I Fase 2 bygger vi dummy-data. I Fase 3 kalder vi ProductService.GetAllGroupsWithVariantsAsync()
+        // Oprydning før vi tilføjer
+        productGroups.Clear();
+
+        // 1. T-SHIRTS (Basic-T)
+        // Baseret på billedet: Produktnr 029030, Sort
         var tShirtGroup = new ProductGroup
         {
             Id = 1,
-            GroupName = "LIFE T-Shirt",
-            ImageUrl = "/images/merch_tshirt.jpg" // Du skal tilføje dette billede
-        };
-        tShirtGroup.Variants = new List<ProductVariant>
-        {
-            new ProductVariant { Id = 10, ProductGroupId = 1, VariantName = "S", StockQuantity = 10, Price = 150 },
-            new ProductVariant { Id = 11, ProductGroupId = 1, VariantName = "M", StockQuantity = 8, Price = 150 },
-            new ProductVariant { Id = 12, ProductGroupId = 1, VariantName = "L", StockQuantity = 5, Price = 150 },
-            new ProductVariant { Id = 13, ProductGroupId = 1, VariantName = "XL", StockQuantity = 2, Price = 150 },
-            new ProductVariant { Id = 14, ProductGroupId = 1, VariantName = "XXL", StockQuantity = 0, Price = 150 } // Udsolgt
+            GroupName = "Basic-T (Sort)",
+            ImageUrl = "/images/Shirt.jpg"
         };
 
-        var vinylGroup = new ProductGroup
+        tShirtGroup.Variants = new List<ProductVariant>
+        {
+            // Antal er sat ud fra din tabel (Total indkøb)
+            new ProductVariant { Id = 10, ProductGroupId = 1, VariantName = "S", StockQuantity = 5, Price = 150 },
+            new ProductVariant { Id = 11, ProductGroupId = 1, VariantName = "M", StockQuantity = 10, Price = 150 },
+            new ProductVariant { Id = 12, ProductGroupId = 1, VariantName = "L", StockQuantity = 20, Price = 150 },
+            new ProductVariant { Id = 13, ProductGroupId = 1, VariantName = "XL", StockQuantity = 10, Price = 150 },
+            new ProductVariant { Id = 14, ProductGroupId = 1, VariantName = "2XL", StockQuantity = 5, Price = 150 }
+        };
+
+        // 2. PATCHES (I stedet for Vinyl)
+        var patchGroup = new ProductGroup
         {
             Id = 2,
-            GroupName = "LIFE Vinyl",
-            ImageUrl = "/images/merch_vinyl.jpg" // Du skal tilføje dette billede
+            GroupName = "Patches",
+            ImageUrl = "/images/Patch.jpg"
         };
-        vinylGroup.Variants = new List<ProductVariant>
+
+        patchGroup.Variants = new List<ProductVariant>
         {
-            new ProductVariant { Id = 20, ProductGroupId = 2, VariantName = "Vinyl", StockQuantity = 15, Price = 250 }
+            new ProductVariant { Id = 20, ProductGroupId = 2, VariantName = "Standard", StockQuantity = 50, Price = 50 }
         };
 
         productGroups.Add(tShirtGroup);
-        productGroups.Add(vinylGroup);
+        productGroups.Add(patchGroup);
     }
 
     private void SelectProductGroup(ProductGroup group)
@@ -186,7 +193,6 @@
         // 3. Gem salget i en ny "SalesHistory"-tabel (skal måske tilføjes til Fase 1?)
 
         Console.WriteLine("Salget er gennemført. Lageret ville blive opdateret i Fase 3.");
-
         cart.Clear();
         ClosePaymentModal();
     }
