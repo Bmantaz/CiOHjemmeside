@@ -46,17 +46,20 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 auto;
+    flex: 0 0 250px; /* Sætter en fast bredde af til logoet, så menuerne ikke støder sammen */
+    position: relative; /* Gør at vi kan styre billedet indeni */
     margin: 0 1rem;
 }
 
-.top-brand img {
-    width: auto;
-    height: 28px;
-    max-width: 190px;
-    max-height: 28px;
-    display: block;
-}
+    .top-brand img {
+        position: absolute; /* Lader billedet 'svæve' uden at strække headeren */
+        height: 200px; /* NU kan du skrue op for højden! Prøv evt. 250px hvis det skal være større */
+        width: auto;
+        max-width: none;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%); /* Centrerer billedet perfekt i midten */
+    }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
         white-space: nowrap;
@@ -117,14 +120,14 @@ main {
     }
 
     .top-brand {
-        order: -1;
+        flex: 1 1 100%;
+        height: 50px; /* Sikrer at logoet har lidt plads på mobilen */
     }
 
-    .top-brand img {
-        height: 22px;
-        max-height: 22px;
-        max-width: 150px;
-    }
+        .top-brand img {
+            height: 120px; /* Juster dette tal indtil det ser godt ud på mobilen */
+        }
+        }
 
         .top-row ::deep a, .top-row ::deep .btn-link {
             margin: 0.2rem 0.45rem;
