@@ -1,8 +1,10 @@
 ﻿@page "/seeddb"
+@layout Layout.InternalLayout
 @rendermode InteractiveServer
-@* ^^^ DENNE LINJE ER TILFØJET FOR AT AKTIVERE KNAPPEN ^^^ *@
+@attribute [Authorize(Roles = "Admin")]
 
 @inject IUserService UserService
+@inject IWebHostEnvironment HostEnvironment
 
 <PageTitle>Seed Database</PageTitle>
 
@@ -10,7 +12,12 @@
 <p>Klik på knappen for at indsætte de 6 standardbrugere i 'users'-tabellen.</p>
 <p>Siden tjekker, om brugerne allerede eksisterer, så den er sikker at køre flere gange.</p>
 
-<button class="btn btn-primary" @onclick="SeedDatabase" disabled="@isProcessing">
+@if (!HostEnvironment.IsDevelopment())
+{
+    <p class="text-danger">Seeding er deaktiveret uden for development-miljøet.</p>
+}
+
+<button class="btn btn-primary" @onclick="SeedDatabase" disabled="@(isProcessing || !HostEnvironment.IsDevelopment())">
     @if (isProcessing)
     {
         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -41,6 +48,12 @@
 
     private async Task SeedDatabase()
     {
+        if (!HostEnvironment.IsDevelopment())
+        {
+            logMessages.Add("FEJL: Seeding er kun tilladt i development-miljøet.");
+            return;
+        }
+
         isProcessing = true;
         logMessages.Clear();
         StateHasChanged();
@@ -59,7 +72,7 @@
 
         // Vi hasher adgangskoden sikkert med BCrypt.
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(rawPassword);
-        logMessages.Add($"Hashing af adgangskode '{rawPassword}'... Komplet.");
+        logMessages.Add("Hashing af standardadgangskode... Komplet.");
 
         foreach (var (username, role) in usersToSeed)
         {

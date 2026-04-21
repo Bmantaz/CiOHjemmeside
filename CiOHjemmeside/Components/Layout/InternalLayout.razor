@@ -35,10 +35,10 @@
 </AuthorizeView>
 
 @code {
-    private void HandleLogout()
+    private async Task HandleLogout()
     {
         var authProvider = (CustomAuthStateProvider)AuthProvider;
-        authProvider.Logout();
+        await authProvider.LogoutAsync();
 
         NavManager.NavigateTo("/login", forceLoad: true);
     }

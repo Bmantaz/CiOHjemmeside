@@ -1,7 +1,7 @@
 ﻿@page "/users"
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
-@* FJERNET: @attribute [Authorize(Roles = "Admin")] *@
+@attribute [Authorize(Roles = "Admin")]
 
 @using System.Diagnostics
 @inject IUserService UserService

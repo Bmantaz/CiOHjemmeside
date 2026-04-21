@@ -72,7 +72,7 @@ namespace CiOHjemmeside.Data.Auth
             return true;
         }
 
-        public async void Logout()
+        public async Task LogoutAsync()
         {
             _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
 
