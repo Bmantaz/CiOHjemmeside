@@ -149,12 +149,20 @@
         var authState = await AuthState;
         var user = authState.User;
 
-        if (user.Identity?.IsAuthenticated == true)
+        if (user.Identity?.IsAuthenticated != true)
         {
-            var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            _currentUserId = !string.IsNullOrEmpty(userIdClaim) ? int.Parse(userIdClaim) : 0;
+            NavManager.NavigateTo("/login", forceLoad: true);
+            return;
         }
-        // FJERNET: 'else'-blokken, der lavede redirect-loop
+
+        if (user.IsInRole("Sales"))
+        {
+            NavManager.NavigateTo("/sales", forceLoad: true);
+            return;
+        }
+
+        var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        _currentUserId = !string.IsNullOrEmpty(userIdClaim) ? int.Parse(userIdClaim) : 0;
 
         BuildCalendar();
         await LoadEventsAsync();

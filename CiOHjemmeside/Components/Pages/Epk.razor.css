@@ -1,0 +1,47 @@
+.epk-wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.epk-lead {
+    color: #999;
+    margin-bottom: 2rem;
+}
+
+.epk-section {
+    margin-bottom: 2rem;
+    padding: 1rem 1.25rem;
+    background: #121212;
+    border: 1px solid #333;
+}
+
+.epk-section h2 {
+    margin-top: 0;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+}
+
+.epk-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.epk-images img {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    border: 1px solid #333;
+}
+
+.epk-note {
+    margin-top: 0.75rem;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.epk-link {
+    color: #fff;
+    text-decoration: underline;
+}

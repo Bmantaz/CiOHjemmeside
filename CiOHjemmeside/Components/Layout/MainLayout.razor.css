@@ -15,30 +15,31 @@ main {
     /* Rettet til mørkt tema */
     background-color: #121212;
     border-bottom: 1px solid #222;
-    justify-content: flex-end;
+    justify-content: center;
     height: 3.5rem;
     display: flex;
     align-items: center;
     /* Tilføjet padding, så det matcher det gamle 'article' */
     padding-left: 2rem !important;
     padding-right: 1.5rem !important;
+    position: sticky;
+    top: 0;
+    z-index: 500;
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
         white-space: nowrap;
-        margin-left: 1.5rem;
+        margin: 0 0.7rem;
         text-decoration: none;
         color: #888; /* Gør 'About'-linket diskret */
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        letter-spacing: 0.8px;
     }
 
         .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
             text-decoration: underline;
             color: #fff;
-        }
-
-        .top-row ::deep a:first-child {
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
 /* NYT TILFØJET: Styling til footer og det skjulte login-link */
@@ -69,11 +70,16 @@ main {
 
 @media (max-width: 640.98px) {
     .top-row {
-        justify-content: space-between;
+        justify-content: center;
+        flex-wrap: wrap;
+        height: auto;
+        min-height: 3.5rem;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
     }
 
         .top-row ::deep a, .top-row ::deep .btn-link {
-            margin-left: 0;
+            margin: 0.2rem 0.45rem;
         }
 }
 

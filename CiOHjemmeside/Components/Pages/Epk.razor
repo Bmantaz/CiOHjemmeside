@@ -1,0 +1,95 @@
+@page "/epk-cio-access-2026"
+@layout Layout.InternalLayout
+@rendermode InteractiveServer
+
+@inject NavigationManager NavManager
+
+<link rel="stylesheet" href="Components/Pages/Epk.razor.css" />
+
+<PageTitle>EPK - Cursed Into Oblivion</PageTitle>
+
+<div class="epk-wrapper">
+    <h1>Electronic Press Kit</h1>
+    <p class="epk-lead">Confidential band material for media, venues and promoters.</p>
+
+    <section class="epk-section">
+        <h2>Press Text (Short)</h2>
+        <p>
+            Cursed Into Oblivion is a Danish metalcore band blending modern heaviness, melodic aggression and experimental textures.
+            Their debut album <strong>LIFE</strong> presents a high-energy live identity built for intense club shows and festival stages.
+        </p>
+    </section>
+
+    <section class="epk-section">
+        <h2>Press Text (Long)</h2>
+        <p>
+            Cursed Into Oblivion delivers a sharp crossover between modern metalcore and classic thrash attitude. Their songs move between
+            breakdown-driven riffs, atmospheric electronics and cinematic dynamics. The band has built a distinct visual profile and a
+            live format designed to engage both heavy music audiences and broader alternative crowds.
+        </p>
+        <p>
+            With the debut release <strong>LIFE</strong>, the band enters the next phase with focused touring plans, content-driven promotion,
+            and a scalable stage production suitable for both support slots and headline club performances.
+        </p>
+    </section>
+
+    <section class="epk-section">
+        <h2>Promo Images</h2>
+        <div class="epk-images">
+            <img src="/images/Fullbodylogo.jpg" alt="Band promo full body" />
+            <img src="/images/CloseUp.jpg" alt="Band promo close up" />
+        </div>
+        <p class="epk-note">Dummy assets are used for now. Replace with high-res press photos when ready.</p>
+    </section>
+
+    <section class="epk-section">
+        <h2>Tech Rider (Dummy)</h2>
+        <ul>
+            <li>Line-up: 3 musicians + optional playback rig</li>
+            <li>Drums: 1 kick, 3 toms, 1 floor tom, 4 cymbal mics</li>
+            <li>Guitar: 2x DI + amp sim or mic’d cab (venue dependent)</li>
+            <li>Vocals: 1 lead vocal mic (wired), 1 backup mic</li>
+            <li>Monitoring: 3x in-ear sends or 3x wedge mixes</li>
+            <li>Playback: stereo DI (L/R) from laptop interface</li>
+            <li>Lighting request: heavy contrast, strobe support for drops</li>
+        </ul>
+    </section>
+
+    <section class="epk-section">
+        <h2>Stage Plot (Dummy)</h2>
+        <p>
+            Center: Drums. Stage left/right: guitars. Lead vocal center-front. Playback rack upstage right.
+            Final PDF stage plot can be linked here later.
+        </p>
+        <a href="#" class="epk-link">Download Stage Plot (placeholder)</a>
+    </section>
+
+    <section class="epk-section">
+        <h2>Contact (Dummy)</h2>
+        <p>Management: manager@cio-band.com</p>
+        <p>Booking: booking@cio-band.com</p>
+        <p>Press: press@cio-band.com</p>
+    </section>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            NavManager.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        if (!user.IsInRole("Admin") && !user.IsInRole("Member"))
+        {
+            NavManager.NavigateTo("/sales", forceLoad: true);
+        }
+    }
+}

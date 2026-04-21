@@ -1,89 +1,96 @@
-﻿/* NY STYLING TIL BILLEDER */
-.header-logo {
-    max-width: 700px; /* Sætter en max-bredde på logoet */
-    width: 100%; /* Gør det responsivt */
-    height: auto;
-    margin-bottom: 1.5rem; /* Lidt luft ned til H2 */
+﻿/* Frontpage refresh */
+.home-page {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
 }
 
-.inline-image {
-    width: 100%;
-    height: auto;
-    margin: 2rem 0; /* God afstand over/under billedet */
-    border: 1px solid #222; /* Passer til det 'brutale' tema */
+.home-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: url('/images/SPEAR%20LOGO.png') center center / cover no-repeat;
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: -1;
 }
 
-
-/* Generel sektions-styling */
-.homepage-section {
-    max-width: 800px;
-    margin: 3rem auto;
-    padding: 1rem;
+.hero,
+.content-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem;
 }
 
-.text-center {
-    text-align: center;
-}
-
-/* Styling til brødtekst-containeren */
-.text-container {
-    font-family: Arial, Helvetica, sans-serif; /* Skifter til en ren brødtekst-font */
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: #f0f0f0;
-}
-
-    .text-container h3 {
-        margin-top: 2rem;
-        margin-bottom: 0.5rem;
-        font-size: 1.5rem;
-        letter-spacing: 1px;
-    }
-
-/* Spotify Iframe Wrapper */
-.spotify-embed {
-    border-top: 1px solid #333;
-    border-bottom: 1px solid #333;
-    padding-top: 2rem;
+.hero {
+    padding-top: 3rem;
     padding-bottom: 2rem;
     text-align: center;
 }
 
-    .spotify-embed h3 {
-        margin-bottom: 1.5rem;
-    }
-
-/* NY KLASSE TIL IFRAME (RETTER HTML0209) */
-.spotify-iframe {
-    border-radius: 12px;
-    width: 100%;
-    height: 352px;
+.hero-logo {
+    width: min(880px, 100%);
+    height: auto;
+    margin-bottom: 0.8rem;
 }
 
+.content-section {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.68);
+    border: 1px solid #1f1f1f;
+}
 
-/* Koncertliste (Minimalistisk/Brutal) */
+.full-band-image {
+    width: 100%;
+    border: 1px solid #2a2a2a;
+}
+
+.release-section {
+    border-top: 1px solid #333;
+    border-bottom: 1px solid #333;
+}
+
+.release-section p {
+    color: #bdbdbd;
+}
+
+.spotify-iframe {
+    margin-top: 1rem;
+    width: 100%;
+    height: 352px;
+    border-radius: 12px;
+    border: 0;
+}
+
+.muted {
+    color: #8a8a8a;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
 .concert-list {
     list-style: none;
     padding: 0;
-    font-family: 'Arial Black', 'Impact', sans-serif; /* Tilbage til den rå font */
+    font-family: 'Arial Black', 'Impact', sans-serif;
     text-transform: uppercase;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
 }
 
 .concert-item {
     display: flex;
-    flex-wrap: wrap; /* Gør den responsiv til mobil */
+    flex-wrap: wrap;
     align-items: center;
-    padding: 1rem 0;
+    gap: 0.75rem;
+    padding: 0.9rem 0;
     border-bottom: 1px solid #222;
 }
 
-    .concert-item:first-of-type {
-        border-top: 1px solid #222;
-    }
+.concert-item:first-of-type {
+    border-top: 1px solid #222;
+}
 
 .concert-date {
-    width: 180px;
+    width: 170px;
     color: #fff;
 }
 
@@ -96,7 +103,7 @@
 
 .concert-location {
     width: 160px;
-    color: #888; /* Dæmpet lokation */
+    color: #888;
 }
 
 .concert-ticket-link {
@@ -115,23 +122,98 @@
     width: 100px;
     text-align: right;
     font-weight: bold;
-    color: #dc3545; /* Rød for "Sold Out" */
+    color: #dc3545;
 }
 
-/* Mobil-optimering af koncertliste */
+.concert-soon {
+    width: 100px;
+    text-align: right;
+    font-weight: bold;
+    color: #999;
+}
+
+.shows-square {
+    width: min(420px, 100%);
+    aspect-ratio: 1 / 1;
+    margin: 1.5rem auto 0 auto;
+    border: 2px solid #2f2f2f;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.video-thumbnail-grid {
+    margin-top: 1.2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.video-card {
+    display: block;
+    border: 1px solid #2b2b2b;
+    text-decoration: none;
+    background: #0f0f0f;
+    overflow: hidden;
+}
+
+.video-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+}
+
+.video-card:hover {
+    border-color: #555;
+}
+
+.band-bio-grid {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(140px, 1fr));
+    gap: 0.6rem;
+}
+
+.member-bio {
+    background: rgba(10, 10, 10, 0.75);
+    border: 1px solid #2a2a2a;
+    padding: 0.55rem 0.6rem;
+    text-align: center;
+}
+
+.member-bio strong {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+}
+
+.member-bio span {
+    display: block;
+    font-size: 0.78rem;
+    color: #b3b3b3;
+}
+
 @media (max-width: 768px) {
+    .hero {
+        padding-top: 2rem;
+    }
+
     .concert-item {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .concert-date, .concert-venue, .concert-location, .concert-ticket-link, .concert-sold-out {
+    .concert-date,
+    .concert-venue,
+    .concert-location,
+    .concert-ticket-link,
+    .concert-sold-out,
+    .concert-soon {
         width: 100%;
         padding: 0.25rem 0;
         text-align: left;
     }
 
-    .concert-location {
-        font-size: 1rem;
+    .band-bio-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }

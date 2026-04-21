@@ -38,6 +38,7 @@ builder.Services.AddScoped<IConcertService, ConcertService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ISalesService, SalesService>();
 // --- SLUT: Konfiguration af Data-lag (Fase 1) ---
 
 

@@ -1,13 +1,13 @@
 ﻿@page "/users"
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
-@attribute [Authorize(Roles = "Admin")]
 
 @using System.Diagnostics
 @inject IUserService UserService
 @inject IConcertService ConcertService
 @inject IProductService ProductService
 @inject ICalendarEventService CalendarEventService
+@inject NavigationManager NavManager
 
 <link rel="stylesheet" href="Components/Pages/UserManagement.razor.css" />
 
@@ -139,6 +139,9 @@
 
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
     // Fase 3: Hentes nu fra databasen
     private List<User> usersList = new();
 
@@ -152,6 +155,22 @@
     // OPDATERET (FASE 3): Kører nu OnInitializedAsync
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthState;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            NavManager.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        if (!user.IsInRole("Admin"))
+        {
+            var target = user.IsInRole("Sales") ? "/sales" : "/dashboard";
+            NavManager.NavigateTo(target, forceLoad: true);
+            return;
+        }
+
         // Fase 3: Hent rigtige data fra databasen
         await LoadUsers();
     }

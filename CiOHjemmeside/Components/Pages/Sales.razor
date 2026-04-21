@@ -2,7 +2,8 @@
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
 
-@inject IProductService ProductService
+@inject ISalesService SalesService
+@inject NavigationManager NavManager
 
 <link rel="stylesheet" href="Components/Pages/Sales.razor.css" />
 
@@ -49,6 +50,16 @@
         <button class="btn-sell" @onclick="ShowPaymentModal" disabled="@(!cart.Any())">
             [ SÆLG ]
         </button>
+
+        @if (!string.IsNullOrEmpty(saleStatusMessage))
+        {
+            <p class="text-success mt-3 mb-0">@saleStatusMessage</p>
+        }
+
+        @if (!string.IsNullOrEmpty(saleErrorMessage))
+        {
+            <p class="text-danger mt-3 mb-0">@saleErrorMessage</p>
+        }
     </div>
 
 </div>
@@ -90,7 +101,7 @@
 
             <img src="/images/mobilepay_qr.png" alt="MobilePay QR Kode" class="qr-code" />
 
-            <button class="btn-complete-sale" @onclick="CompleteSale">
+            <button class="btn-complete-sale" @onclick="CompleteSale" disabled="@isCompletingSale">
                 Betaling Gennemført (Opdater Lager)
             </button>
         </div>
@@ -99,6 +110,9 @@
 
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
     // Fase 2: Dummy data
     private List<ProductGroup> productGroups = new();
     // Kurven
@@ -107,8 +121,35 @@
     // Modal-styring
     private ProductGroup? selectedGroup;
     private bool isPaymentModalVisible = false;
+    private bool isCompletingSale = false;
+    private int _currentUserId;
+    private string saleStatusMessage = string.Empty;
+    private string saleErrorMessage = string.Empty;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            NavManager.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        if (user.IsInRole("Member"))
+        {
+            NavManager.NavigateTo("/dashboard", forceLoad: true);
+            return;
+        }
+
+        var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        _currentUserId = int.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
+
+        InitializeProducts();
+    }
+
+    private void InitializeProducts()
     {
         // Oprydning før vi tilføjer
         productGroups.Clear();
@@ -125,11 +166,11 @@
         tShirtGroup.Variants = new List<ProductVariant>
         {
             // Antal er sat ud fra din tabel (Total indkøb)
-            new ProductVariant { Id = 10, ProductGroupId = 1, VariantName = "S", StockQuantity = 5, Price = 150 },
-            new ProductVariant { Id = 11, ProductGroupId = 1, VariantName = "M", StockQuantity = 10, Price = 150 },
-            new ProductVariant { Id = 12, ProductGroupId = 1, VariantName = "L", StockQuantity = 20, Price = 150 },
-            new ProductVariant { Id = 13, ProductGroupId = 1, VariantName = "XL", StockQuantity = 10, Price = 150 },
-            new ProductVariant { Id = 14, ProductGroupId = 1, VariantName = "2XL", StockQuantity = 5, Price = 150 }
+            new ProductVariant { Id = 10, ProductGroupId = 1, VariantName = "S", StockQuantity = 5, Price = 125 },
+            new ProductVariant { Id = 11, ProductGroupId = 1, VariantName = "M", StockQuantity = 10, Price = 125 },
+            new ProductVariant { Id = 12, ProductGroupId = 1, VariantName = "L", StockQuantity = 20, Price = 125 },
+            new ProductVariant { Id = 13, ProductGroupId = 1, VariantName = "XL", StockQuantity = 10, Price = 125 },
+            new ProductVariant { Id = 14, ProductGroupId = 1, VariantName = "2XL", StockQuantity = 5, Price = 125 }
         };
 
         // 2. PATCHES (I stedet for Vinyl)
@@ -176,6 +217,8 @@
 
     private void ShowPaymentModal()
     {
+        saleStatusMessage = string.Empty;
+        saleErrorMessage = string.Empty;
         isPaymentModalVisible = true;
         selectedGroup = null; // Luk den anden modal, hvis den er åben
     }
@@ -187,13 +230,51 @@
 
     private async Task CompleteSale()
     {
-        // Fase 3:
-        // 1. Loop gennem 'cart'
-        // 2. Kald ProductService.UpdateVariantStockAsync() for hver variant
-        // 3. Gem salget i en ny "SalesHistory"-tabel (skal måske tilføjes til Fase 1?)
+        if (!cart.Any())
+        {
+            return;
+        }
 
-        Console.WriteLine("Salget er gennemført. Lageret ville blive opdateret i Fase 3.");
-        cart.Clear();
-        ClosePaymentModal();
+        if (_currentUserId <= 0)
+        {
+            saleErrorMessage = "Fejl: Kunne ikke identificere den loggede bruger.";
+            return;
+        }
+
+        isCompletingSale = true;
+        saleErrorMessage = string.Empty;
+
+        try
+        {
+            var saleItems = cart
+                .GroupBy(item => new
+                {
+                    item.Group.GroupName,
+                    item.Variant.VariantName,
+                    UnitPrice = item.Variant.Price ?? 0
+                })
+                .Select(group => new SaleItemInput
+                {
+                    ProductGroupName = group.Key.GroupName,
+                    VariantName = group.Key.VariantName,
+                    Quantity = group.Count(),
+                    UnitPrice = group.Key.UnitPrice
+                })
+                .ToList();
+
+            await SalesService.RecordSaleAsync(_currentUserId, saleItems, DateTime.UtcNow);
+
+            saleStatusMessage = $"Salg gemt ({saleItems.Sum(i => i.Quantity)} varer).";
+            cart.Clear();
+            ClosePaymentModal();
+        }
+        catch (Exception ex)
+        {
+            saleErrorMessage = $"Salg kunne ikke gemmes: {ex.Message}";
+        }
+        finally
+        {
+            isCompletingSale = false;
+        }
     }
 }

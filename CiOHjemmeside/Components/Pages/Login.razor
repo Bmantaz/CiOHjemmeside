@@ -66,8 +66,12 @@
 
             if (success)
             {
+                var authState = await AuthProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                var targetRoute = user.IsInRole("Sales") ? "/sales" : "/dashboard";
+
                 // forceLoad ensures authentication state persists in new circuit
-                NavManager.NavigateTo("/dashboard", forceLoad: true);
+                NavManager.NavigateTo(targetRoute, forceLoad: true);
             }
             else
             {
