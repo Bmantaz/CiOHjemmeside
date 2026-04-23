@@ -4,6 +4,8 @@
 
 @inject ISalesService SalesService
 @inject NavigationManager NavManager
+@inject ProtectedSessionStorage SessionStorage
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 
 <link rel="stylesheet" href="Components/Pages/Sales.razor.css" />
 
@@ -23,6 +25,8 @@
 
     <div class="cart-section">
         <h3>Indkøbskurv</h3>
+
+        <p class="seller-indicator">Aktiv sælger: <strong>@selectedRecipientName</strong></p>
 
         @if (!cart.Any())
         {
@@ -47,7 +51,7 @@
             </div>
         }
 
-        <button class="btn-sell" @onclick="ShowPaymentModal" disabled="@(!cart.Any())">
+        <button class="btn-sell" @onclick="ShowPaymentModal" disabled="@(!cart.Any() || string.IsNullOrWhiteSpace(selectedRecipientName))">
             [ SÆLG ]
         </button>
 
@@ -63,6 +67,25 @@
     </div>
 
 </div>
+
+@if (isSellerSelectionVisible)
+{
+    <div class="modal-backdrop"></div>
+    <div class="modal-content seller-modal">
+        <div class="modal-header">
+            <h3>Åbn Shop</h3>
+        </div>
+        <div class="modal-body text-center">
+            <p>Hvem er aktiv sælger i denne session?</p>
+            <div class="seller-grid">
+                @foreach (var recipient in mobilePayRecipients)
+                {
+                    <button class="btn-seller-select" @onclick="() => SelectSellerAndOpenShop(recipient.Name)">@recipient.Name</button>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 
 @if (selectedGroup != null)
@@ -97,11 +120,30 @@
         </div>
         <div class="modal-body text-center">
             <h4>Total: @cart.Sum(i => i.Variant.Price ?? 0).ToString("N2") kr.</h4>
-            <p>Scan MobilePay QR-kode for at gennemføre købet.</p>
+            <div class="payment-methods">
+                <button class="btn-payment-method @(selectedPaymentMethod == "MobilePay" ? "active" : "")" @onclick="SetMobilePay">MobilePay</button>
+                <button class="btn-payment-method @(selectedPaymentMethod == "Cash" ? "active" : "")" @onclick="SetCash">Cash</button>
+            </div>
 
-            <img src="/images/mobilepay_qr.png" alt="MobilePay QR Kode" class="qr-code" />
+            @if (selectedPaymentMethod == "MobilePay")
+            {
+                <p>Send MobilePay til:</p>
+                <p class="mobilepay-recipient">@GetSelectedRecipientDisplay()</p>
+            }
+            else
+            {
+                <div class="cash-box">
+                    <label for="cashReceived">Cash modtaget (kr.)</label>
+                    <input id="cashReceived" class="cash-input" type="number" min="0" step="0.01" @bind="cashReceivedInput" />
+                    <p>Byttepenge: <strong>@GetCashChange().ToString("N2") kr.</strong></p>
+                    @if (!IsCashPaymentValid())
+                    {
+                        <p class="text-danger">Beløbet er mindre end totalen.</p>
+                    }
+                </div>
+            }
 
-            <button class="btn-complete-sale" @onclick="CompleteSale" disabled="@isCompletingSale">
+            <button class="btn-complete-sale" @onclick="CompleteSale" disabled="@isCompletingSale || !CanCompletePayment()">
                 Betaling Gennemført (Opdater Lager)
             </button>
         </div>
@@ -125,6 +167,19 @@
     private int _currentUserId;
     private string saleStatusMessage = string.Empty;
     private string saleErrorMessage = string.Empty;
+    private string selectedRecipientName = string.Empty;
+    private bool isSellerSelectionVisible = false;
+    private string selectedPaymentMethod = "MobilePay";
+    private string cashReceivedInput = string.Empty;
+
+    private readonly List<MobilePayRecipient> mobilePayRecipients = new()
+    {
+        new("Sebastian", "11 11 11 11"),
+        new("Henrik", "22 22 22 22"),
+        new("Kristofer", "33 33 33 33"),
+        new("Michal", "44 44 44 44"),
+        new("Bjarke", "55 55 55 55")
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,7 +201,34 @@
         var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
         _currentUserId = int.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
 
+        await LoadSellerSelectionAsync();
         InitializeProducts();
+    }
+
+    private async Task LoadSellerSelectionAsync()
+    {
+        try
+        {
+            var sellerResult = await SessionStorage.GetAsync<string>("CiO-ActiveSeller");
+            if (sellerResult.Success && !string.IsNullOrWhiteSpace(sellerResult.Value))
+            {
+                selectedRecipientName = sellerResult.Value;
+                isSellerSelectionVisible = false;
+                return;
+            }
+        }
+        catch
+        {
+        }
+
+        isSellerSelectionVisible = true;
+    }
+
+    private async Task SelectSellerAndOpenShop(string sellerName)
+    {
+        selectedRecipientName = sellerName;
+        isSellerSelectionVisible = false;
+        await SessionStorage.SetAsync("CiO-ActiveSeller", sellerName);
     }
 
     private void InitializeProducts()
@@ -219,6 +301,8 @@
     {
         saleStatusMessage = string.Empty;
         saleErrorMessage = string.Empty;
+        selectedPaymentMethod = "MobilePay";
+        cashReceivedInput = string.Empty;
         isPaymentModalVisible = true;
         selectedGroup = null; // Luk den anden modal, hvis den er åben
     }
@@ -238,6 +322,12 @@
         if (_currentUserId <= 0)
         {
             saleErrorMessage = "Fejl: Kunne ikke identificere den loggede bruger.";
+            return;
+        }
+
+        if (!CanCompletePayment())
+        {
+            saleErrorMessage = "Betaling er ikke gyldig endnu.";
             return;
         }
 
@@ -277,4 +367,64 @@
             isCompletingSale = false;
         }
     }
+
+    private void SetPaymentMethod(string method)
+    {
+        selectedPaymentMethod = method;
+    }
+
+    private void SetMobilePay() => SetPaymentMethod("MobilePay");
+
+    private void SetCash() => SetPaymentMethod("Cash");
+
+    private decimal GetCartTotal() => cart.Sum(i => i.Variant.Price ?? 0m);
+
+    private bool IsCashPaymentValid()
+    {
+        if (selectedPaymentMethod != "Cash")
+        {
+            return true;
+        }
+
+        if (!decimal.TryParse(cashReceivedInput, out var received))
+        {
+            return false;
+        }
+
+        return received >= GetCartTotal();
+    }
+
+    private decimal GetCashChange()
+    {
+        if (!decimal.TryParse(cashReceivedInput, out var received))
+        {
+            return 0m;
+        }
+
+        var change = received - GetCartTotal();
+        return change < 0 ? 0m : change;
+    }
+
+    private bool CanCompletePayment()
+    {
+        if (string.IsNullOrWhiteSpace(selectedRecipientName))
+        {
+            return false;
+        }
+
+        return selectedPaymentMethod == "MobilePay" || IsCashPaymentValid();
+    }
+
+    private string GetSelectedRecipientDisplay()
+    {
+        var recipient = mobilePayRecipients.FirstOrDefault(r => r.Name == selectedRecipientName);
+        if (recipient is null)
+        {
+            return "Vælg person";
+        }
+
+        return $"{recipient.Name}: {recipient.PhoneNumber}";
+    }
+
+    private sealed record MobilePayRecipient(string Name, string PhoneNumber);
 }

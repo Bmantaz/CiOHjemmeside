@@ -88,6 +88,11 @@
     border-color: #fff;
 }
 
+.epk-unlock-button {
+    color: #000;
+    background: #fff;
+}
+
 .epk-actions-wrap {
     display: grid;
     gap: 0.75rem;
@@ -147,4 +152,20 @@
         flex-direction: column;
         align-items: flex-start;
     }
+}
+.epk-code-input {
+    background: #0f0f0f;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 0.45rem 0.6rem;
+    min-width: 180px;
+}
+
+.epk-error {
+    margin-top: 0.6rem;
+    color: #dc3545;
+}
+
+.epk-code-input::placeholder {
+    color: #888;
 }

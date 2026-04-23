@@ -6,6 +6,33 @@
     height: calc(100vh - 7.5rem); /* Fuld højde minus top-bar og padding */
 }
 
+.sales-profile-box {
+    margin-bottom: 1rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.seller-indicator {
+    margin-bottom: 1rem;
+    color: #bdbdbd;
+    font-size: 0.95rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+    .sales-profile-box label {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-size: 0.9rem;
+        color: #bdbdbd;
+    }
+
+.sales-profile-select {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 0.45rem 0.55rem;
+}
+
 /* Venstre side: Produkt-område */
 .product-grid {
     /* RETTELSE: Vi bruger Flexbox i stedet for Grid her */
@@ -261,6 +288,78 @@
 .payment-modal .modal-body {
     text-align: center;
 }
+
+.payment-methods {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 0.8rem 0 1.2rem 0;
+}
+
+.btn-payment-method {
+    border: 1px solid #555;
+    background: #222;
+    color: #ddd;
+    padding: 0.45rem 0.8rem;
+    cursor: pointer;
+}
+
+    .btn-payment-method.active {
+        border-color: #fff;
+        color: #fff;
+        background: #333;
+    }
+
+.mobilepay-recipient {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.cash-box {
+    text-align: left;
+    max-width: 320px;
+    margin: 0 auto 1rem auto;
+}
+
+    .cash-box label {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: #bdbdbd;
+    }
+
+.cash-input {
+    width: 100%;
+    background: #121212;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 0.45rem 0.55rem;
+    margin-bottom: 0.5rem;
+}
+
+.seller-modal {
+    max-width: 520px;
+}
+
+.seller-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-top: 0.9rem;
+}
+
+.btn-seller-select {
+    border: 1px solid #555;
+    background: #242424;
+    color: #fff;
+    padding: 0.7rem;
+    cursor: pointer;
+}
+
+    .btn-seller-select:hover {
+        border-color: #fff;
+        background: #2e2e2e;
+    }
 
 .qr-code {
     max-width: 250px;

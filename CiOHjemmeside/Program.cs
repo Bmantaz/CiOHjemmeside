@@ -39,6 +39,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
+builder.Services.AddScoped<IEpkAccessService, EpkAccessService>();
 // --- SLUT: Konfiguration af Data-lag (Fase 1) ---
 
 

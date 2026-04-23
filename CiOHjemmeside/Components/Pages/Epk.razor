@@ -1,12 +1,30 @@
 @page "/epk-cio-access-2026"
 @layout Layout.MainLayout
 @rendermode InteractiveServer
+@inject IEpkAccessService EpkAccessService
 
 <link rel="stylesheet" href="Components/Pages/Epk.razor.css" />
 
 <PageTitle>EPK - Cursed Into Oblivion</PageTitle>
 
 <div class="epk-wrapper">
+    @if (!isAccessGranted)
+    {
+        <section class="epk-section">
+            <h2>EPK Access</h2>
+            <p>Enter access code to continue.</p>
+            <div class="epk-actions">
+                <input class="epk-code-input" type="password" @bind="accessCode" placeholder="Access code" />
+                <button class="epk-link-button epk-unlock-button" @onclick="UnlockEpk">Unlock</button>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(accessError))
+            {
+                <p class="epk-error">@accessError</p>
+            }
+        </section>
+    }
+    else
+    {
     <h1>Electronic Press Kit</h1>
     <p class="epk-lead">Select a section below.</p>
 
@@ -26,5 +44,43 @@
             <p>Band photos and poster/logo assets.</p>
         </a>
     </div>
+    }
 </div>
+
+@code {
+    private bool isAccessGranted;
+    private string accessCode = string.Empty;
+    private string accessError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true && (user.IsInRole("Admin") || user.IsInRole("Member")))
+        {
+            isAccessGranted = true;
+            return;
+        }
+
+        isAccessGranted = await EpkAccessService.IsUnlockedAsync();
+    }
+
+    [Inject]
+    private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+    private async Task UnlockEpk()
+    {
+        accessError = string.Empty;
+
+        var unlocked = await EpkAccessService.ValidateAndUnlockAsync(accessCode);
+        if (unlocked)
+        {
+            isAccessGranted = true;
+            return;
+        }
+
+        accessError = "Invalid access code.";
+    }
+}
 
