@@ -11,5 +11,7 @@ namespace CiOHjemmeside.Data.Services
         /// Henter alle kommende koncerter (fra dags dato og frem).
         /// </summary>
         Task<IEnumerable<Concert>> GetUpcomingConcertsAsync();
+
+        Task<int> AddAsync(Concert concert);
     }
 }

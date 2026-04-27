@@ -1,0 +1,112 @@
+@page "/shows-admin"
+@layout Layout.InternalLayout
+@rendermode InteractiveServer
+
+@inject IConcertService ConcertService
+@inject NavigationManager NavManager
+
+<PageTitle>Show Management</PageTitle>
+
+<h1>Add Show</h1>
+<p>Create upcoming shows with date, time, supporting bands, and links.</p>
+
+<EditForm Model="newConcert" OnValidSubmit="HandleSave">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Venue</label>
+        <InputText class="form-control" @bind-Value="newConcert.VenueName" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">City</label>
+        <InputText class="form-control" @bind-Value="newConcert.City" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Country</label>
+        <InputText class="form-control" @bind-Value="newConcert.Country" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Date & Time</label>
+        <InputDate class="form-control" @bind-Value="newConcert.EventDate" Type="InputDateType.DateTimeLocal" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">With other bands</label>
+        <InputText class="form-control" @bind-Value="newConcert.OtherBands" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Tickets link</label>
+        <InputText class="form-control" @bind-Value="newConcert.TicketLink" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Facebook event link</label>
+        <InputText class="form-control" @bind-Value="newConcert.FacebookEventLink" />
+    </div>
+
+    <button class="btn btn-primary" type="submit" disabled="@isSaving">@(isSaving ? "Saving..." : "Add Show")</button>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <p class="mt-3 text-success">@statusMessage</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="mt-3 text-danger">@errorMessage</p>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private Concert newConcert = new() { EventDate = DateTime.Now.AddDays(14), IsSoldOut = false };
+    private bool isSaving;
+    private string statusMessage = string.Empty;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            NavManager.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        if (!user.IsInRole("Admin"))
+        {
+            var target = user.IsInRole("Sales") ? "/sales" : "/dashboard";
+            NavManager.NavigateTo(target, forceLoad: true);
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        isSaving = true;
+        statusMessage = string.Empty;
+        errorMessage = string.Empty;
+
+        try
+        {
+            await ConcertService.AddAsync(newConcert);
+            statusMessage = "Show created successfully.";
+            newConcert = new Concert { EventDate = DateTime.Now.AddDays(14), IsSoldOut = false };
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to create show: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

@@ -32,6 +32,11 @@
                         <span class="concert-venue">@concert.VenueName</span>
                         <span class="concert-location">@concert.City, @concert.Country</span>
 
+                        @if (!string.IsNullOrWhiteSpace(concert.OtherBands))
+                        {
+                            <span class="concert-location">With: @concert.OtherBands</span>
+                        }
+
                         @if (concert.IsSoldOut)
                         {
                             <span class="concert-sold-out">[SOLD OUT]</span>
@@ -44,12 +49,16 @@
                         {
                             <span class="concert-soon">[SOON]</span>
                         }
+
+                        @if (!string.IsNullOrWhiteSpace(concert.FacebookEventLink))
+                        {
+                            <a href="@concert.FacebookEventLink" target="_blank" rel="noopener noreferrer" class="concert-ticket-link">[FACEBOOK]</a>
+                        }
                     </li>
                 }
             </ul>
         }
 
-        <div class="shows-square" aria-hidden="true"></div>
     </section>
 
     <section id="music" class="content-section release-section">

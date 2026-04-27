@@ -7,7 +7,9 @@
         public string? City { get; set; }
         public string? Country { get; set; }
         public DateTime EventDate { get; set; }
+        public string? OtherBands { get; set; }
         public string? TicketLink { get; set; }
+        public string? FacebookEventLink { get; set; }
         public bool IsSoldOut { get; set; }
     }
 }

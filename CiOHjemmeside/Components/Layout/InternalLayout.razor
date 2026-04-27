@@ -10,6 +10,8 @@
                     CIO Dashboard
                 </div>
                 <div class="nav-links">
+                    <NavLink class="nav-link" href="/">Frontpage</NavLink>
+
                     <AuthorizeView Roles="Admin,Member" Context="calendarContext">
                         <Authorized>
                             <NavLink class="nav-link" href="dashboard">Kalender</NavLink>
@@ -27,6 +29,7 @@
                         <Authorized>
                             <NavLink class="nav-link" href="users">Brugerstyring</NavLink>
                             <NavLink class="nav-link" href="sales-statistics">Salg Statistik</NavLink>
+                            <NavLink class="nav-link" href="shows-admin">Shows Admin</NavLink>
                         </Authorized>
                     </AuthorizeView>
 

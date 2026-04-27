@@ -31,7 +31,14 @@
         <footer class="main-footer">
             © @DateTime.Now.Year Cursed Into Oblivion
             <span class="px-2">|</span>
-            <a href="login" class="login-link">member login</a>
+            <AuthorizeView>
+                <Authorized>
+                    <a href="dashboard" class="login-link">member page</a>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="login" class="login-link">member login</a>
+                </NotAuthorized>
+            </AuthorizeView>
         </footer>
     </main>
 </div>
