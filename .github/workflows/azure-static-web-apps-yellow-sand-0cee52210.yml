@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Fjerner Node.js 20 advarslen
+
 jobs:
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
@@ -27,11 +30,12 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_YELLOW_SAND_0CEE52210 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
-          ###### DISSE TRE LINJER PASSER TIL DIT REPO ######
-          app_location: "/"           # Din .csproj ligger her
-          api_location: ""            # Ingen API
-          output_location: "wwwroot"  # Dine filer (EPK, images osv.) ligger her
-          ###### ------------------------------------ ######
+          ###### DENNE KOMBINATION SKAL VIRKE ######
+          app_location: "wwwroot"   # Vi går direkte til dine filer
+          api_location: "" 
+          output_location: ""        # Ingen undermappe inde i wwwroot
+          skip_app_build: true       # MEGET VIGTIGT: Fortæller Azure ikke at bygge koden
+          ###### ------------------------------ ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
