@@ -27,11 +27,11 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_YELLOW_SAND_0CEE52210 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### DE RIGTIGE INDSTILLINGER ######
-          app_location: "/"       # Din kode ligger i roden
-          api_location: ""        # Ingen API
-          output_location: ""     # Kig direkte efter index.html i roden (vigtigt!)
-          ###### ----------------------- ######
+          ###### RETTET HERUNDER SÅ DET PASSER TIL DIT REPOSITORY ######
+          app_location: "CiOHjemmeside" # Peger på mappen hvor din index.html ligger
+          api_location: "" 
+          output_location: ""          # Tom, da det er ren HTML uden build-step
+          ###### ---------------------------------------------- ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
