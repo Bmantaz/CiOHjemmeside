@@ -30,9 +30,9 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_YELLOW_SAND_0CEE52210 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/"             # Roden af dit repo
+          app_location: "wwwroot"             # Roden af dit repo
           api_location: "" 
-          output_location: "wwwroot"    # Mappen med dine statiske filer
+          output_location: ""    # Mappen med dine statiske filer
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
