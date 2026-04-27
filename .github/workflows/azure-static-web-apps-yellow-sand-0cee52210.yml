@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v4 # Opdateret til v4 for at fjerne Node.js advarsel
+      - uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
@@ -27,11 +27,9 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_YELLOW_SAND_0CEE52210 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Konfiguration af stier ######
-          app_location: "/"        # Leder nu i roden af dit repository i stedet for i 'Client'
-          api_location: ""         # Efterladt tom da du ikke har en API mappe
-          output_location: "wwwroot" # Sørg for at denne matcher din build-mappe (f.eks. 'dist' eller 'build' hvis wwwroot ikke virker)
-          ###### Slut på konfiguration ######
+          app_location: "/"
+          api_location: ""
+          output_location: "wwwroot"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
