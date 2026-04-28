@@ -53,5 +53,30 @@ namespace CiOHjemmeside.Data.Services
 
             return await connection.QuerySingleAsync<int>(sql, concert);
         }
+
+        public async Task UpdateAsync(Concert concert)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync();
+
+            var ensureColumnsSql = @"
+                ALTER TABLE concerts ADD COLUMN IF NOT EXISTS otherbands TEXT;
+                ALTER TABLE concerts ADD COLUMN IF NOT EXISTS facebookeventlink TEXT;
+            ";
+            await connection.ExecuteAsync(ensureColumnsSql);
+
+            var sql = @"
+                UPDATE concerts
+                SET venuename = @VenueName,
+                    city = @City,
+                    country = @Country,
+                    eventdate = @EventDate,
+                    otherbands = @OtherBands,
+                    ticketlink = @TicketLink,
+                    facebookeventlink = @FacebookEventLink,
+                    issoldout = @IsSoldOut
+                WHERE id = @Id";
+
+            await connection.ExecuteAsync(sql, concert);
+        }
     }
 }

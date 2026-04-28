@@ -43,7 +43,7 @@
                         }
                         else if (!string.IsNullOrWhiteSpace(concert.TicketLink))
                         {
-                            <a href="@concert.TicketLink" target="_blank" rel="noopener noreferrer" class="concert-ticket-link">[TICKETS]</a>
+                            <a href="@EnsureAbsoluteUrl(concert.TicketLink)" target="_blank" rel="noopener noreferrer" class="concert-ticket-link">[TICKETS]</a>
                         }
                         else
                         {
@@ -52,7 +52,7 @@
 
                         @if (!string.IsNullOrWhiteSpace(concert.FacebookEventLink))
                         {
-                            <a href="@concert.FacebookEventLink" target="_blank" rel="noopener noreferrer" class="concert-ticket-link">[FACEBOOK]</a>
+                            <a href="@EnsureAbsoluteUrl(concert.FacebookEventLink)" target="_blank" rel="noopener noreferrer" class="concert-ticket-link">[FACEBOOK]</a>
                         }
                     </li>
                 }
@@ -194,6 +194,22 @@
         }
 
         return null;
+    }
+
+    private static string EnsureAbsoluteUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return string.Empty;
+        }
+
+        if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return url;
+        }
+
+        return "https://" + url.TrimStart('/');
     }
 
     private sealed record FeaturedVideo(string Title, string Url, string FallbackImageUrl);

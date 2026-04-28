@@ -7,48 +7,103 @@
 
 <PageTitle>Show Management</PageTitle>
 
-<h1>Add Show</h1>
-<p>Create upcoming shows with date, time, supporting bands, and links.</p>
+<h1>Shows Admin</h1>
+<p>Create and edit upcoming shows.</p>
 
-<EditForm Model="newConcert" OnValidSubmit="HandleSave">
+@if (isLoading)
+{
+    <p>Loading shows...</p>
+}
+else
+{
+    <table class="table table-dark table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Venue</th>
+                <th>City</th>
+                <th>Tickets</th>
+                <th>Facebook</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var show in upcomingShows)
+            {
+                <tr>
+                    <td>@show.EventDate.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</td>
+                    <td>@show.VenueName</td>
+                    <td>@show.City</td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(show.TicketLink))
+                        {
+                            <a href="@show.TicketLink" target="_blank" rel="noopener noreferrer">Tickets</a>
+                        }
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(show.FacebookEventLink))
+                        {
+                            <a href="@show.FacebookEventLink" target="_blank" rel="noopener noreferrer">Facebook</a>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-light" @onclick="() => EditShow(show)">Edit</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<hr />
+
+<h2>@(isEditing ? "Edit Show" : "Add Show")</h2>
+
+<EditForm Model="currentConcert" OnValidSubmit="HandleSave">
     <DataAnnotationsValidator />
 
     <div class="mb-3">
         <label class="form-label">Venue</label>
-        <InputText class="form-control" @bind-Value="newConcert.VenueName" />
+        <InputText class="form-control" @bind-Value="currentConcert.VenueName" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">City</label>
-        <InputText class="form-control" @bind-Value="newConcert.City" />
+        <InputText class="form-control" @bind-Value="currentConcert.City" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Country</label>
-        <InputText class="form-control" @bind-Value="newConcert.Country" />
+        <InputText class="form-control" @bind-Value="currentConcert.Country" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Date & Time</label>
-        <InputDate class="form-control" @bind-Value="newConcert.EventDate" Type="InputDateType.DateTimeLocal" />
+        <InputDate class="form-control" @bind-Value="currentConcert.EventDate" Type="InputDateType.DateTimeLocal" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">With other bands</label>
-        <InputText class="form-control" @bind-Value="newConcert.OtherBands" />
+        <InputText class="form-control" @bind-Value="currentConcert.OtherBands" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Tickets link</label>
-        <InputText class="form-control" @bind-Value="newConcert.TicketLink" />
+        <InputText class="form-control" @bind-Value="currentConcert.TicketLink" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Facebook event link</label>
-        <InputText class="form-control" @bind-Value="newConcert.FacebookEventLink" />
+        <InputText class="form-control" @bind-Value="currentConcert.FacebookEventLink" />
     </div>
 
-    <button class="btn btn-primary" type="submit" disabled="@isSaving">@(isSaving ? "Saving..." : "Add Show")</button>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit" disabled="@isSaving">@(isSaving ? "Saving..." : (isEditing ? "Save Changes" : "Add Show"))</button>
+        @if (isEditing)
+        {
+            <button type="button" class="btn btn-secondary" @onclick="CancelEdit" disabled="@isSaving">Cancel</button>
+        }
+    </div>
 </EditForm>
 
 @if (!string.IsNullOrWhiteSpace(statusMessage))
@@ -65,7 +120,10 @@
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
 
-    private Concert newConcert = new() { EventDate = DateTime.Now.AddDays(14), IsSoldOut = false };
+    private List<Concert> upcomingShows = new();
+    private bool isLoading = true;
+    private bool isEditing;
+    private Concert currentConcert = new() { EventDate = DateTime.Now.AddDays(14), IsSoldOut = false };
     private bool isSaving;
     private string statusMessage = string.Empty;
     private string errorMessage = string.Empty;
@@ -86,6 +144,21 @@
             var target = user.IsInRole("Sales") ? "/sales" : "/dashboard";
             NavManager.NavigateTo(target, forceLoad: true);
         }
+
+        await LoadShowsAsync();
+    }
+
+    private async Task LoadShowsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            upcomingShows = (await ConcertService.GetUpcomingConcertsAsync()).ToList();
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task HandleSave()
@@ -96,9 +169,19 @@
 
         try
         {
-            await ConcertService.AddAsync(newConcert);
-            statusMessage = "Show created successfully.";
-            newConcert = new Concert { EventDate = DateTime.Now.AddDays(14), IsSoldOut = false };
+            if (isEditing)
+            {
+                await ConcertService.UpdateAsync(currentConcert);
+                statusMessage = "Show updated successfully.";
+            }
+            else
+            {
+                await ConcertService.AddAsync(currentConcert);
+                statusMessage = "Show created successfully.";
+            }
+
+            await LoadShowsAsync();
+            ResetForm();
         }
         catch (Exception ex)
         {
@@ -108,5 +191,30 @@
         {
             isSaving = false;
         }
+    }
+
+    private void EditShow(Concert show)
+    {
+        isEditing = true;
+        currentConcert = new Concert
+        {
+            Id = show.Id,
+            VenueName = show.VenueName,
+            City = show.City,
+            Country = show.Country,
+            EventDate = show.EventDate.ToLocalTime(),
+            OtherBands = show.OtherBands,
+            TicketLink = show.TicketLink,
+            FacebookEventLink = show.FacebookEventLink,
+            IsSoldOut = show.IsSoldOut
+        };
+    }
+
+    private void CancelEdit() => ResetForm();
+
+    private void ResetForm()
+    {
+        isEditing = false;
+        currentConcert = new Concert { EventDate = DateTime.Now.AddDays(14), IsSoldOut = false };
     }
 }

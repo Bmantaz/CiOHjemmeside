@@ -13,5 +13,7 @@ namespace CiOHjemmeside.Data.Services
         Task<IEnumerable<Concert>> GetUpcomingConcertsAsync();
 
         Task<int> AddAsync(Concert concert);
+
+        Task UpdateAsync(Concert concert);
     }
 }
