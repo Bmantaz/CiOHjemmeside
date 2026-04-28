@@ -1,0 +1,61 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<div class="cookie-banner" style="display:@(showBanner ? "flex" : "none")" role="dialog" aria-live="polite">
+    <div class="cookie-content">
+        <div class="cookie-text">
+            This site uses essential cookies required for the site to work. We also use optional cookies for analytics only with your consent.
+            By accepting you allow us to load non-essential scripts. Read more in our <a href="/cookie-policy">cookie policy</a>.
+        </div>
+        <div class="cookie-actions">
+            <button class="cookie-btn cookie-decline" @onclick="() => SetConsent(false)">Reject</button>
+            <button class="cookie-btn cookie-accept" @onclick="() => SetConsent(true)">Accept</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool showBanner;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var consent = await JS.InvokeAsync<string>("cioCookie.getConsent");
+            if (string.IsNullOrEmpty(consent))
+            {
+                showBanner = true;
+                StateHasChanged();
+            }
+            else if (consent == "accepted")
+            {
+                // load optional scripts if previously accepted
+                await JS.InvokeVoidAsync("cioCookie.onAccept");
+            }
+        }
+        catch
+        {
+            showBanner = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetConsent(bool accept)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("cioCookie.setConsent", accept ? "accepted" : "rejected");
+            showBanner = false;
+            if (accept)
+            {
+                await JS.InvokeVoidAsync("cioCookie.onAccept");
+            }
+        }
+        catch
+        {
+            showBanner = false;
+        }
+    }
+}

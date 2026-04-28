@@ -53,6 +53,37 @@ h1:focus {
     color: #e50000;
 }
 
+/* Cookie banner minimal styles */
+
+/* Cookie consent modal centered popup */
+.cookie-banner {
+    position: fixed;
+    inset: 0; /* top:0; right:0; bottom:0; left:0 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45); /* dim background */
+    z-index: 9999;
+}
+
+.cookie-content {
+    max-width: 760px;
+    width: calc(100% - 40px);
+    background: #0f0f0f;
+    border: 1px solid #333;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+}
+
+.cookie-text { color: #ccc; font-size: 0.95rem; }
+.cookie-actions { margin-left: auto; display:flex; gap:0.5rem; }
+.cookie-btn { padding: 0.6rem 0.8rem; border: 1px solid #666; background: #222; color: #fff; cursor:pointer; }
+.cookie-accept { background:#fff; color:#000; border-color:#fff; }
+
 /* Rettet fejl-UI til mørkt tema */
 .blazor-error-boundary {
     background: #330000;
