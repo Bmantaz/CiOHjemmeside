@@ -56,11 +56,29 @@ namespace CiOHjemmeside.Data.Services
                 UPDATE users SET
                     username = @Username,
                     passwordhash = @PasswordHash,
-                    role = @Role
+                    role = @Role,
+                    mustresetpassword = @MustResetPassword
                 WHERE id = @Id";
 
             var affectedRows = await connection.ExecuteAsync(sql, user);
             return affectedRows > 0;
+        }
+
+        public async Task SetMustResetPasswordAsync(int id, bool mustReset)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync();
+
+            var ensureColumnSql = @"
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS mustresetpassword BOOLEAN NOT NULL DEFAULT FALSE;
+            ";
+            await connection.ExecuteAsync(ensureColumnSql);
+
+            var sql = @"
+                UPDATE users
+                SET mustresetpassword = @MustReset
+                WHERE id = @Id";
+
+            await connection.ExecuteAsync(sql, new { Id = id, MustReset = mustReset });
         }
 
         public async Task<bool> DeleteAsync(int id)

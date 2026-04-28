@@ -79,3 +79,10 @@ h1 {
     margin-bottom: 1rem;
     font-family: Arial, Helvetica, sans-serif;
 }
+
+.login-success {
+    color: #198754;
+    text-align: center;
+    margin-bottom: 1rem;
+    font-family: Arial, Helvetica, sans-serif;
+}

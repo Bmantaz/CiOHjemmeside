@@ -209,6 +209,12 @@
         isModalVisible = false;
     }
 
+    private async Task ForcePasswordReset(User user)
+    {
+        await UserService.SetMustResetPasswordAsync(user.Id, true);
+        await LoadUsers();
+    }
+
     // OPDATERET (FASE 3): Gemmer nu til databasen
     private async Task HandleSave()
     {

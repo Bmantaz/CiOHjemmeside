@@ -5,6 +5,7 @@
 @inject ICalendarEventService CalendarEventService
 @inject IUserService UserService
 @inject NavigationManager NavManager
+@using System.Globalization
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -16,6 +17,7 @@
 </div>
 
 <div class="calendar-grid">
+    <div class="calendar-week-header">Uge</div>
     <div class="calendar-day-header">Mandag</div>
     <div class="calendar-day-header">Tirsdag</div>
     <div class="calendar-day-header">Onsdag</div>
@@ -24,24 +26,42 @@
     <div class="calendar-day-header">Lørdag</div>
     <div class="calendar-day-header">Søndag</div>
 
-    @for (int i = 0; i < startDayOffset; i++)
+    @foreach (var week in calendarWeeks)
     {
-        <div class="calendar-day other-month"></div>
-    }
+        <div class="calendar-week-number">@week.WeekNumber</div>
 
-    @foreach (var day in daysInMonth)
-    {
-        <div class="calendar-day @(day.Date == DateTime.Today ? "today" : "")" @onclick="() => DateClicked(day)">
-            <div class="day-number">@day.Day</div>
+        @foreach (var day in week.Days)
+        {
+            var isCurrentMonth = day.Month == currentDate.Month;
+            var dayClass = "calendar-day";
+            if (!isCurrentMonth)
+            {
+                dayClass += " other-month";
+            }
+            if (day.Date == DateTime.Today)
+            {
+                dayClass += " today";
+            }
+
+            <div class="@dayClass" @onclick="() => DateClicked(day)">
+                <div class="day-number">@day.Day</div>
             <div class="day-events">
                 @foreach (var ev in GetEventsForDay(day))
                 {
-                    <button class="event-chip @ev.EventType.ToLower()" @onclick="() => EventClicked(ev)" @onclick:stopPropagation>
-                        @ev.Title
-                    </button>
+                    @if (ev.EventType == "Unavailable")
+                    {
+                        <div class="day-unavailable" @onclick="() => EventClicked(ev)" @onclick:stopPropagation>✕</div>
+                    }
+                    else
+                    {
+                        <button class="event-chip @ev.EventType.ToLower()" @onclick="() => EventClicked(ev)" @onclick:stopPropagation>
+                            @ev.Title
+                        </button>
+                    }
                 }
             </div>
-        </div>
+            </div>
+        }
     }
 </div>
 
@@ -73,6 +93,7 @@
                         <option value="Practice">Practice</option>
                         <option value="Discord">Discord</option>
                         <option value="Other">Other</option>
+                        <option value="Unavailable">Kan ikke</option>
                     </InputSelect>
                     <ValidationMessage For="() => currentEvent.EventType" />
                 </div>
@@ -86,6 +107,11 @@
                         <label>Slut Tidspunkt (Valgfri)</label>
                         <InputDate class="form-control-modal" @bind-Value="nullableEndTime" Type="InputDateType.DateTimeLocal" />
                     </div>
+                </div>
+
+                <div class="form-group-modal">
+                    <label>Antal dage (valgfri)</label>
+                    <InputNumber class="form-control-modal" @bind-Value="repeatDays" min="1" />
                 </div>
 
                 <div class="form-group-modal">
@@ -126,8 +152,7 @@
     private Task<AuthenticationState> AuthState { get; set; } = default!;
 
     private DateTime currentDate = DateTime.Now;
-    private List<DateTime> daysInMonth = new();
-    private int startDayOffset = 0;
+    private List<CalendarWeek> calendarWeeks = new();
     private int _currentUserId;
 
     private List<CalendarEvent> events = new();
@@ -137,6 +162,7 @@
     private CalendarEvent currentEvent = new();
     private bool isCreatingNewUser = true;
     private bool isProcessingSave = false;
+    private int? repeatDays;
 
     private DateTime? nullableEndTime
     {
@@ -180,16 +206,25 @@
 
     private void BuildCalendar()
     {
-        daysInMonth.Clear();
+        calendarWeeks.Clear();
         var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
-        int days = DateTime.DaysInMonth(currentDate.Year, currentDate.Month);
+        var lastDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, DateTime.DaysInMonth(currentDate.Year, currentDate.Month));
 
-        startDayOffset = (int)firstDayOfMonth.DayOfWeek;
-        startDayOffset = (startDayOffset == 0) ? 6 : startDayOffset - 1;
+        var calendarStart = firstDayOfMonth.AddDays(-((int)firstDayOfMonth.DayOfWeek + 6) % 7);
+        var calendarEnd = lastDayOfMonth.AddDays(6 - (((int)lastDayOfMonth.DayOfWeek + 6) % 7));
 
-        for (int i = 1; i <= days; i++)
+        var cursor = calendarStart;
+        while (cursor <= calendarEnd)
         {
-            daysInMonth.Add(new DateTime(currentDate.Year, currentDate.Month, i));
+            var weekDays = new List<DateTime>();
+            for (int i = 0; i < 7; i++)
+            {
+                weekDays.Add(cursor);
+                cursor = cursor.AddDays(1);
+            }
+
+            var weekNumber = ISOWeek.GetWeekOfYear(weekDays[0]);
+            calendarWeeks.Add(new CalendarWeek(weekNumber, weekDays));
         }
     }
 
@@ -200,6 +235,14 @@
 
     private void DateClicked(DateTime date)
     {
+        if (date.Month != currentDate.Month)
+        {
+            return;
+        }
+        if (date.Month != currentDate.Month)
+        {
+            return;
+        }
         isCreatingNewUser = true;
         modalTitle = "Opret Ny Event";
         currentEvent = new CalendarEvent
@@ -209,6 +252,7 @@
             EventType = "Practice"
         };
         nullableEndTime = null;
+        repeatDays = null;
         isModalVisible = true;
     }
 
@@ -247,7 +291,32 @@
 
         if (isCreatingNewUser)
         {
-            await CalendarEventService.AddAsync(currentEvent);
+            if (repeatDays.HasValue && repeatDays.Value > 1)
+            {
+                var startDate = currentEvent.StartTime.Date;
+                var endDate = startDate.AddDays(repeatDays.Value - 1);
+                var startTimeOfDay = currentEvent.StartTime.TimeOfDay;
+                var endTimeOfDay = currentEvent.EndTime?.TimeOfDay;
+
+                for (var day = startDate; day <= endDate; day = day.AddDays(1))
+                {
+                    var newEvent = new CalendarEvent
+                    {
+                        Title = currentEvent.Title,
+                        EventType = currentEvent.EventType,
+                        StartTime = day.Add(startTimeOfDay),
+                        EndTime = endTimeOfDay.HasValue ? day.Add(endTimeOfDay.Value) : null,
+                        Notes = currentEvent.Notes,
+                        CreatedByUserId = currentEvent.CreatedByUserId
+                    };
+
+                    await CalendarEventService.AddAsync(newEvent);
+                }
+            }
+            else
+            {
+                await CalendarEventService.AddAsync(currentEvent);
+            }
         }
         else
         {
@@ -281,4 +350,6 @@
         BuildCalendar();
         await LoadEventsAsync();
     }
+
+    private sealed record CalendarWeek(int WeekNumber, List<DateTime> Days);
 }

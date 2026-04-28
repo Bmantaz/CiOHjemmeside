@@ -35,6 +35,7 @@ namespace CiOHjemmeside.Data.Services
         public async Task<int> AddAsync(CalendarEvent calendarEvent)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
+            await EnsureEventTypeConstraintAsync(connection);
             // Rettet til lowercase
             var sql = @"
                 INSERT INTO calendarevents 
@@ -49,6 +50,7 @@ namespace CiOHjemmeside.Data.Services
         public async Task<bool> UpdateAsync(CalendarEvent calendarEvent)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
+            await EnsureEventTypeConstraintAsync(connection);
             // Rettet til lowercase
             var sql = @"
                 UPDATE calendarevents SET
@@ -62,6 +64,19 @@ namespace CiOHjemmeside.Data.Services
 
             var affectedRows = await connection.ExecuteAsync(sql, calendarEvent);
             return affectedRows > 0;
+        }
+
+        private static async Task EnsureEventTypeConstraintAsync(System.Data.IDbConnection connection)
+        {
+            var sql = @"
+                ALTER TABLE calendarevents
+                DROP CONSTRAINT IF EXISTS calendarevents_eventtype_check;
+                ALTER TABLE calendarevents
+                ADD CONSTRAINT calendarevents_eventtype_check
+                CHECK (eventtype IN ('Gig','Practice','Discord','Other','Unavailable'));
+            ";
+
+            await connection.ExecuteAsync(sql);
         }
 
         public async Task<bool> DeleteAsync(int id)

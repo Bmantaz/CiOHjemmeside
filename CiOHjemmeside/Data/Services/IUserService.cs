@@ -35,6 +35,8 @@ namespace CiOHjemmeside.Data.Services
         /// <returns>Returnerer true, hvis opdateringen lykkedes.</returns>
         Task<bool> UpdateAsync(User user);
 
+        Task SetMustResetPasswordAsync(int id, bool mustReset);
+
         /// <summary>
         /// Sletter en bruger fra databasen via ID.
         /// </summary>

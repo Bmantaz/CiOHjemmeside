@@ -36,6 +36,8 @@
     padding: 0.25rem 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    min-width: 52px;
+    text-align: center;
 }
 
     .btn-nav:hover {
@@ -46,9 +48,9 @@
 /* Selve kalender-grid'et */
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 7 kolonner til ugedage */
+    grid-template-columns: 70px repeat(7, 1fr); /* Week number + 7 days */
     gap: 1px;
-    background-color: #333; /* Gitter-linjer */
+    background-color: #333;
     border: 1px solid #333;
 }
 
@@ -59,6 +61,44 @@
     text-align: center;
     font-size: 0.8rem;
     text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.calendar-week-header {
+    background-color: #0a0a0a;
+    color: #888;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.calendar-week-number {
+    background-color: #0a0a0a;
+    color: #888;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.calendar-week-header {
+    background-color: #0a0a0a;
+    color: #888;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.calendar-week-number {
+    background-color: #0a0a0a;
+    color: #888;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.85rem;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -141,6 +181,18 @@
     .event-chip.other {
         background-color: #6c757d; /* Grå */
     }
+
+/* Unavailable (Kan ikke) large red cross */
+.day-unavailable {
+    color: #fff;
+    background: #b02a37;
+    width: 100%;
+    padding: 6px 0;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 4px;
+}
 
 
 /* === MODAL STYLING TILFØJET === */

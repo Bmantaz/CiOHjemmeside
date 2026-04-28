@@ -5,6 +5,7 @@
 
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager NavManager
+@inject IUserService UserService
 
 <PageTitle>Login</PageTitle>
 
@@ -64,19 +65,25 @@
             var authProvider = (CustomAuthStateProvider)AuthProvider;
             bool success = await authProvider.LoginAsync(username, password);
 
-            if (success)
+            if (!success)
             {
-                var authState = await AuthProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
-                var targetRoute = user.IsInRole("Sales") ? "/sales" : "/dashboard";
+                var user = await UserService.GetByUsernameAsync(username);
+                if (user?.MustResetPassword == true)
+                {
+                    NavManager.NavigateTo($"/reset-password/{user.Id}", forceLoad: true);
+                    return;
+                }
 
-                // forceLoad ensures authentication state persists in new circuit
-                NavManager.NavigateTo(targetRoute, forceLoad: true);
-            }
-            else
-            {
                 errorMessage = "Fejl i brugernavn eller adgangskode.";
+                return;
             }
+
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var loggedInUser = authState.User;
+            var targetRoute = loggedInUser.IsInRole("Sales") ? "/sales" : "/dashboard";
+
+            // forceLoad ensures authentication state persists in new circuit
+            NavManager.NavigateTo(targetRoute, forceLoad: true);
         }
         catch (Exception ex)
         {

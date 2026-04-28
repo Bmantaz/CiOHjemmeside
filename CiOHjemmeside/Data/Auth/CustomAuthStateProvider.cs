@@ -54,6 +54,11 @@ namespace CiOHjemmeside.Data.Auth
                 return false;
             }
 
+            if (user.MustResetPassword)
+            {
+                return false;
+            }
+
             var claims = new[]
             {
                 new Claim(ClaimTypes.Name, user.Username),
