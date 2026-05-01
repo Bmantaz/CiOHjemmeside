@@ -6,26 +6,41 @@
 @inject NavigationManager NavManager
 @inject ProtectedSessionStorage SessionStorage
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using System.Security.Claims
 
 <link rel="stylesheet" href="Components/Pages/Sales.razor.css" />
 
 <PageTitle>Sales Dashboard</PageTitle>
 
 <div class="pos-container">
-
     <div class="product-grid">
-        @foreach (var group in productGroups)
+        @if (productGroups == null)
         {
-            <div class="product-card" @onclick="() => SelectProductGroup(group)">
-                <img src="@(group.ImageUrl ?? "/images/placeholder.png")" alt="@group.GroupName" />
-                <div class="product-name">@group.GroupName</div>
+            <div class="loading-state">
+                <p>Indlæser produkter fra databasen...</p>
             </div>
+        }
+        else if (!productGroups.Any())
+        {
+            <div class="alert alert-warning">
+                <h5>Ingen produkter fundet!</h5>
+                <p>Databasen er tom. Kør Database Seeder for at oprette 'Basic-T' og 'Patches'.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var group in productGroups)
+            {
+                <div class="product-card" @onclick="() => SelectProductGroup(group)">
+                    <img src="@(string.IsNullOrEmpty(group.ImageUrl) ? "/images/placeholder.png" : group.ImageUrl)" alt="@group.GroupName" />
+                    <div class="product-name">@group.GroupName</div>
+                </div>
+            }
         }
     </div>
 
     <div class="cart-section">
         <h3>Indkøbskurv</h3>
-
         <p class="seller-indicator">Aktiv sælger: <strong>@selectedRecipientName</strong></p>
 
         @if (!cart.Any())
@@ -44,10 +59,10 @@
                     </div>
                 }
             </div>
-            <hr class_="cart-divider" />
+            <hr class="cart-divider" />
             <div class="cart-total">
                 <span>Total</span>
-                <span>@cart.Sum(i => i.Variant.Price ?? 0).ToString("N2") kr.</span>
+                <span>@GetCartTotal().ToString("N2") kr.</span>
             </div>
         }
 
@@ -59,22 +74,18 @@
         {
             <p class="text-success mt-3 mb-0">@saleStatusMessage</p>
         }
-
         @if (!string.IsNullOrEmpty(saleErrorMessage))
         {
             <p class="text-danger mt-3 mb-0">@saleErrorMessage</p>
         }
     </div>
-
 </div>
 
 @if (isSellerSelectionVisible)
 {
     <div class="modal-backdrop"></div>
     <div class="modal-content seller-modal">
-        <div class="modal-header">
-            <h3>Åbn Shop</h3>
-        </div>
+        <div class="modal-header"><h3>Åbn Shop</h3></div>
         <div class="modal-body text-center">
             <p>Hvem er aktiv sælger i denne session?</p>
             <div class="seller-grid">
@@ -87,7 +98,6 @@
     </div>
 }
 
-
 @if (selectedGroup != null)
 {
     <div class="modal-backdrop" @onclick="CloseVariantModal"></div>
@@ -99,9 +109,9 @@
         <div class="modal-body variant-grid">
             @foreach (var variant in selectedGroup.Variants)
             {
-                <button class="btn-variant @(variant.StockQuantity == 0 ? "disabled" : "")"
+                <button class="btn-variant @(variant.StockQuantity <= 0 ? "disabled" : "")"
                         @onclick="() => AddToCart(selectedGroup, variant)"
-                        disabled="@(variant.StockQuantity == 0)">
+                        disabled="@(variant.StockQuantity <= 0)">
                     <span class="variant-name">@variant.VariantName</span>
                     <span class="variant-stock">Lager: @variant.StockQuantity</span>
                 </button>
@@ -119,7 +129,7 @@
             <button class="btn-close-modal" @onclick="ClosePaymentModal">×</button>
         </div>
         <div class="modal-body text-center">
-            <h4>Total: @cart.Sum(i => i.Variant.Price ?? 0).ToString("N2") kr.</h4>
+            <h4>Total: @GetCartTotal().ToString("N2") kr.</h4>
             <div class="payment-methods">
                 <button class="btn-payment-method @(selectedPaymentMethod == "MobilePay" ? "active" : "")" @onclick="SetMobilePay">MobilePay</button>
                 <button class="btn-payment-method @(selectedPaymentMethod == "Cash" ? "active" : "")" @onclick="SetCash">Cash</button>
@@ -134,33 +144,36 @@
             {
                 <div class="cash-box">
                     <label for="cashReceived">Cash modtaget (kr.)</label>
-                    <input id="cashReceived" class="cash-input" type="number" min="0" step="0.01" @bind="cashReceivedInput" />
+                    <input id="cashReceived" class="cash-input" type="number" min="0" step="1" @bind="cashReceivedInput" @bind:event="oninput" />
                     <p>Byttepenge: <strong>@GetCashChange().ToString("N2") kr.</strong></p>
                     @if (!IsCashPaymentValid())
                     {
-                        <p class="text-danger">Beløbet er mindre end totalen.</p>
+                        <p class="text-danger small">Beløbet er mindre end totalen.</p>
                     }
                 </div>
             }
 
-            <button class="btn-complete-sale" @onclick="CompleteSale" disabled="@isCompletingSale || !CanCompletePayment()">
-                Betaling Gennemført (Opdater Lager)
+            <button class="btn-complete-sale" @onclick="CompleteSale" disabled="@(isCompletingSale || !CanCompletePayment())">
+                @if (isCompletingSale)
+                {
+                    <span>Behandler...</span>
+                }
+                else
+                {
+
+                    <span>BETALING GENNEMFØRT (OPDATER LAGER)</span>
+                }
             </button>
         </div>
     </div>
 }
 
-
 @code {
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
 
-    // Fase 2: Dummy data
-    private List<ProductGroup> productGroups = new();
-    // Kurven
+    private List<ProductGroup> productGroups = null;
     private List<(ProductGroup Group, ProductVariant Variant)> cart = new();
-
-    // Modal-styring
     private ProductGroup? selectedGroup;
     private bool isPaymentModalVisible = false;
     private bool isCompletingSale = false;
@@ -174,13 +187,13 @@
 
     private readonly List<MobilePayRecipient> mobilePayRecipients = new()
     {
-        new("Sebastian", "11 11 11 11"),
-        new("Henrik", "22 22 22 22"),
-        new("Kristofer", "33 33 33 33"),
-        new("Michal", "44 44 44 44"),
-        new("Bjarke", "55 55 55 55")
+        new("Sebastian", "42 23 80 30"),
+        new("Henrik", "53 68 86 76"),
+        new("Kristofer", "21 66 48 20"),
+        new("Michal", "61 65 91 25"),
+        new("Bjarke", "27 52 90 51")
     };
-
+     
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthState;
@@ -192,107 +205,52 @@
             return;
         }
 
-        if (user.IsInRole("Member"))
-        {
-            NavManager.NavigateTo("/dashboard", forceLoad: true);
-            return;
-        }
-
         var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
         _currentUserId = int.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
 
         await LoadSellerSelectionAsync();
-        InitializeProducts();
+        await LoadProductsAsync();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        try { productGroups = await SalesService.GetAllProductGroupsWithVariantsAsync(); }
+        catch (Exception ex) { saleErrorMessage = $"Fejl ved indlæsning: {ex.Message}"; productGroups = new(); }
     }
 
     private async Task LoadSellerSelectionAsync()
     {
         try
         {
-            var sellerResult = await SessionStorage.GetAsync<string>("CiO-ActiveSeller");
-            if (sellerResult.Success && !string.IsNullOrWhiteSpace(sellerResult.Value))
-            {
-                selectedRecipientName = sellerResult.Value;
-                isSellerSelectionVisible = false;
-                return;
-            }
+            var res = await SessionStorage.GetAsync<string>("CiO-ActiveSeller");
+            if (res.Success && !string.IsNullOrWhiteSpace(res.Value)) { selectedRecipientName = res.Value; isSellerSelectionVisible = false; }
+            else { isSellerSelectionVisible = true; }
         }
-        catch
-        {
-        }
-
-        isSellerSelectionVisible = true;
+        catch { isSellerSelectionVisible = true; }
     }
 
-    private async Task SelectSellerAndOpenShop(string sellerName)
+    private async Task SelectSellerAndOpenShop(string name)
     {
-        selectedRecipientName = sellerName;
+        selectedRecipientName = name;
         isSellerSelectionVisible = false;
-        await SessionStorage.SetAsync("CiO-ActiveSeller", sellerName);
+        await SessionStorage.SetAsync("CiO-ActiveSeller", name);
     }
 
-    private void InitializeProducts()
-    {
-        // Oprydning før vi tilføjer
-        productGroups.Clear();
-
-        // 1. T-SHIRTS (Basic-T)
-        // Baseret på billedet: Produktnr 029030, Sort
-        var tShirtGroup = new ProductGroup
-        {
-            Id = 1,
-            GroupName = "Basic-T (Sort)",
-            ImageUrl = "/images/Shirt.jpg"
-        };
-
-        tShirtGroup.Variants = new List<ProductVariant>
-        {
-            // Antal er sat ud fra din tabel (Total indkøb)
-            new ProductVariant { Id = 10, ProductGroupId = 1, VariantName = "S", StockQuantity = 5, Price = 125 },
-            new ProductVariant { Id = 11, ProductGroupId = 1, VariantName = "M", StockQuantity = 10, Price = 125 },
-            new ProductVariant { Id = 12, ProductGroupId = 1, VariantName = "L", StockQuantity = 20, Price = 125 },
-            new ProductVariant { Id = 13, ProductGroupId = 1, VariantName = "XL", StockQuantity = 10, Price = 125 },
-            new ProductVariant { Id = 14, ProductGroupId = 1, VariantName = "2XL", StockQuantity = 5, Price = 125 }
-        };
-
-        // 2. PATCHES (I stedet for Vinyl)
-        var patchGroup = new ProductGroup
-        {
-            Id = 2,
-            GroupName = "Patches",
-            ImageUrl = "/images/Patch.jpg"
-        };
-
-        patchGroup.Variants = new List<ProductVariant>
-        {
-            new ProductVariant { Id = 20, ProductGroupId = 2, VariantName = "Standard", StockQuantity = 50, Price = 50 }
-        };
-
-        productGroups.Add(tShirtGroup);
-        productGroups.Add(patchGroup);
-    }
-
-    private void SelectProductGroup(ProductGroup group)
-    {
-        selectedGroup = group;
-    }
-
-    private void CloseVariantModal()
-    {
-        selectedGroup = null;
-    }
+    private void SelectProductGroup(ProductGroup group) => selectedGroup = group;
+    private void CloseVariantModal() => selectedGroup = null;
 
     private void AddToCart(ProductGroup group, ProductVariant variant)
     {
-        // Fase 2: Vi justerer dummy-lageret.
-        // I Fase 3 vil vi kun justere lageret *efter* salget er gennemført.
-        variant.StockQuantity--;
-        cart.Add((group, variant));
+        if (variant.StockQuantity > 0)
+        {
+            variant.StockQuantity--;
+            cart.Add((group, variant));
+            saleStatusMessage = string.Empty;
+        }
     }
 
     private void RemoveFromCart((ProductGroup Group, ProductVariant Variant) item)
     {
-        // Fase 2: Læg varen tilbage på dummy-lageret
         item.Variant.StockQuantity++;
         cart.Remove(item);
     }
@@ -301,35 +259,14 @@
     {
         saleStatusMessage = string.Empty;
         saleErrorMessage = string.Empty;
-        selectedPaymentMethod = "MobilePay";
-        cashReceivedInput = string.Empty;
         isPaymentModalVisible = true;
-        selectedGroup = null; // Luk den anden modal, hvis den er åben
     }
 
-    private void ClosePaymentModal()
-    {
-        isPaymentModalVisible = false;
-    }
+    private void ClosePaymentModal() => isPaymentModalVisible = false;
 
     private async Task CompleteSale()
     {
-        if (!cart.Any())
-        {
-            return;
-        }
-
-        if (_currentUserId <= 0)
-        {
-            saleErrorMessage = "Fejl: Kunne ikke identificere den loggede bruger.";
-            return;
-        }
-
-        if (!CanCompletePayment())
-        {
-            saleErrorMessage = "Betaling er ikke gyldig endnu.";
-            return;
-        }
+        if (!cart.Any() || _currentUserId <= 0 || isCompletingSale) return;
 
         isCompletingSale = true;
         saleErrorMessage = string.Empty;
@@ -337,30 +274,26 @@
         try
         {
             var saleItems = cart
-                .GroupBy(item => new
+                .GroupBy(item => new { item.Group.GroupName, item.Variant.VariantName, Price = item.Variant.Price ?? 0 })
+                .Select(g => new SaleItemInput
                 {
-                    item.Group.GroupName,
-                    item.Variant.VariantName,
-                    UnitPrice = item.Variant.Price ?? 0
-                })
-                .Select(group => new SaleItemInput
-                {
-                    ProductGroupName = group.Key.GroupName,
-                    VariantName = group.Key.VariantName,
-                    Quantity = group.Count(),
-                    UnitPrice = group.Key.UnitPrice
+                    ProductGroupName = g.Key.GroupName,
+                    VariantName = g.Key.VariantName,
+                    Quantity = g.Count(),
+                    UnitPrice = g.Key.Price
                 })
                 .ToList();
 
-            await SalesService.RecordSaleAsync(_currentUserId, saleItems, DateTime.UtcNow);
+            await SalesService.RecordSaleAsync(_currentUserId, saleItems);
 
-            saleStatusMessage = $"Salg gemt ({saleItems.Sum(i => i.Quantity)} varer).";
+            saleStatusMessage = "Salg gennemført!";
             cart.Clear();
-            ClosePaymentModal();
+            isPaymentModalVisible = false;
+            await LoadProductsAsync(); // Opdater lageret i UI fra DB
         }
         catch (Exception ex)
         {
-            saleErrorMessage = $"Salg kunne ikke gemmes: {ex.Message}";
+            saleErrorMessage = $"Fejl ved lagring: {ex.Message}";
         }
         finally
         {
@@ -368,62 +301,29 @@
         }
     }
 
-    private void SetPaymentMethod(string method)
-    {
-        selectedPaymentMethod = method;
-    }
-
-    private void SetMobilePay() => SetPaymentMethod("MobilePay");
-
-    private void SetCash() => SetPaymentMethod("Cash");
-
+    private void SetMobilePay() => selectedPaymentMethod = "MobilePay";
+    private void SetCash() => selectedPaymentMethod = "Cash";
     private decimal GetCartTotal() => cart.Sum(i => i.Variant.Price ?? 0m);
 
     private bool IsCashPaymentValid()
     {
-        if (selectedPaymentMethod != "Cash")
-        {
-            return true;
-        }
-
-        if (!decimal.TryParse(cashReceivedInput, out var received))
-        {
-            return false;
-        }
-
-        return received >= GetCartTotal();
+        if (selectedPaymentMethod != "Cash") return true;
+        return decimal.TryParse(cashReceivedInput, out var received) && received >= GetCartTotal();
     }
 
     private decimal GetCashChange()
     {
-        if (!decimal.TryParse(cashReceivedInput, out var received))
-        {
-            return 0m;
-        }
-
+        if (!decimal.TryParse(cashReceivedInput, out var received)) return 0m;
         var change = received - GetCartTotal();
         return change < 0 ? 0m : change;
     }
 
-    private bool CanCompletePayment()
-    {
-        if (string.IsNullOrWhiteSpace(selectedRecipientName))
-        {
-            return false;
-        }
-
-        return selectedPaymentMethod == "MobilePay" || IsCashPaymentValid();
-    }
+    private bool CanCompletePayment() => !string.IsNullOrWhiteSpace(selectedRecipientName) && (selectedPaymentMethod == "MobilePay" || IsCashPaymentValid());
 
     private string GetSelectedRecipientDisplay()
     {
         var recipient = mobilePayRecipients.FirstOrDefault(r => r.Name == selectedRecipientName);
-        if (recipient is null)
-        {
-            return "Vælg person";
-        }
-
-        return $"{recipient.Name}: {recipient.PhoneNumber}";
+        return recipient != null ? $"{recipient.Name}: {recipient.PhoneNumber}" : "Vælg person";
     }
 
     private sealed record MobilePayRecipient(string Name, string PhoneNumber);

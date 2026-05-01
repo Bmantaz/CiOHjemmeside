@@ -3,44 +3,83 @@
 @rendermode InteractiveServer
 
 @inject IUserService UserService
+@inject IDbConnectionFactory DbFactory
 @inject IWebHostEnvironment HostEnvironment
 @inject NavigationManager NavManager
+@using CiOHjemmeside.Data.Models
+@using CiOHjemmeside.Data.Services
+@using Dapper
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 
 <PageTitle>Seed Database</PageTitle>
 
-<h1>Seed Database med Brugere</h1>
-<p>Klik på knappen for at indsætte de 6 standardbrugere i 'users'-tabellen.</p>
-<p>Siden tjekker, om brugerne allerede eksisterer, så den er sikker at køre flere gange.</p>
+<div class="container mt-4">
+    <h1>Database Administration (Seed)</h1>
+    <p>Her kan du initialisere databasen med nødvendige grunddata.</p>
 
-@if (!HostEnvironment.IsDevelopment())
-{
-    <p class="text-danger">Seeding er deaktiveret uden for development-miljøet.</p>
-}
-
-<button class="btn btn-primary" @onclick="SeedDatabase" disabled="@(isProcessing || !HostEnvironment.IsDevelopment())">
-    @if (isProcessing)
+    @if (!HostEnvironment.IsDevelopment())
     {
-        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        <span> Seeder...</span>
+        <div class="alert alert-danger">
+            <strong>Advarsel:</strong> Seeding er deaktiveret uden for development-miljøet for at beskytte produktionsdata.
+        </div>
     }
-    else
-    {
-        <span>Start Seeding</span>
-    }
-</button>
 
-@if (logMessages.Any())
-{
-    <h3 class="mt-4">Log:</h3>
-    <ul class="list-group">
-        @foreach (var msg in logMessages)
-        {
-            <li class="list-group-item @(msg.Contains("FEJL") ? "list-group-item-danger" : "list-group-item-success")">
-                @msg
-            </li>
-        }
-    </ul>
-}
+    <div class="row mt-4">
+        <!-- Bruger Seeding -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Brugere</h5>
+                </div>
+                <div class="card-body">
+                    <p>Opretter de 6 standardbrugere (Bjarke, Kristofer, Henrik, Michal, Sebastian og Sales).</p>
+                    <button class="btn btn-primary" @onclick="SeedUsers" disabled="@(isProcessing || !HostEnvironment.IsDevelopment())">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        Start Bruger-Seed
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Produkt Seeding -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Produkter & Lager</h5>
+                </div>
+                <div class="card-body">
+                    <p>Opretter 'Basic-T (Sort)' og 'Patches' med det reelle lagerstatus.</p>
+                    <button class="btn btn-success" @onclick="SeedProducts" disabled="@(isProcessing || !HostEnvironment.IsDevelopment())">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        Start Produkt-Seed
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (logMessages.Any())
+    {
+        <div class="mt-4">
+            <h3>Log:</h3>
+            <ul class="list-group shadow-sm">
+                @foreach (var msg in logMessages)
+                {
+                    <li class="list-group-item @(msg.Contains("FEJL") ? "list-group-item-danger" : msg.Contains("SUCCESS") ? "list-group-item-success" : "list-group-item-info")">
+                        @msg
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>
 
 @code {
     [CascadingParameter]
@@ -67,17 +106,11 @@
         }
     }
 
-    private async Task SeedDatabase()
+    private async Task SeedUsers()
     {
-        if (!HostEnvironment.IsDevelopment())
-        {
-            logMessages.Add("FEJL: Seeding er kun tilladt i development-miljøet.");
-            return;
-        }
-
         isProcessing = true;
         logMessages.Clear();
-        StateHasChanged();
+        logMessages.Add("Starter bruger-seeding...");
 
         var usersToSeed = new List<(string Username, string Role)>
         {
@@ -90,43 +123,105 @@
         };
 
         var rawPassword = "Password123!";
-
-        // Vi hasher adgangskoden sikkert med BCrypt.
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(rawPassword);
-        logMessages.Add("Hashing af standardadgangskode... Komplet.");
 
         foreach (var (username, role) in usersToSeed)
         {
             try
             {
-                // Tjek om brugeren allerede eksisterer (idempotent)
                 var existingUser = await UserService.GetByUsernameAsync(username);
                 if (existingUser == null)
                 {
-                    var newUser = new User
-                    {
-                        Username = username,
-                        PasswordHash = passwordHash,
-                        Role = role
-                    };
-
-                    int newId = await UserService.AddAsync(newUser);
-                    logMessages.Add($"SUCCESS: Bruger '{username}' (Role: {role}) oprettet med ID: {newId}.");
+                    var newUser = new User { Username = username, PasswordHash = passwordHash, Role = role };
+                    await UserService.AddAsync(newUser);
+                    logMessages.Add($"SUCCESS: Bruger '{username}' oprettet.");
                 }
                 else
                 {
-                    logMessages.Add($"INFO: Bruger '{username}' eksisterer allerede. Springer over.");
+                    logMessages.Add($"INFO: Bruger '{username}' findes allerede.");
                 }
             }
             catch (Exception ex)
             {
-                logMessages.Add($"FEJL ved oprettelse af '{username}': {ex.Message}");
+                logMessages.Add($"FEJL ved '{username}': {ex.Message}");
             }
-            StateHasChanged(); // Opdater UI efter hver bruger
         }
 
-        logMessages.Add("Seeding afsluttet.");
         isProcessing = false;
-        StateHasChanged();
+        logMessages.Add("Bruger-seeding afsluttet.");
+    }
+
+    private async Task SeedProducts()
+    {
+        isProcessing = true;
+        logMessages.Clear();
+        logMessages.Add("Starter produkt-seeding...");
+
+        using var connection = await DbFactory.CreateConnectionAsync();
+
+        try
+        {
+            // 1. Seed T-Shirts
+            const string findGroupSql = "SELECT id FROM productgroups WHERE groupname = @Name LIMIT 1";
+            var tShirtGroupId = await connection.QueryFirstOrDefaultAsync<int?>(findGroupSql, new { Name = "Basic-T (Sort)" });
+
+            if (tShirtGroupId == null)
+            {
+                tShirtGroupId = await connection.QuerySingleAsync<int>(
+                    "INSERT INTO productgroups (groupname, imageurl) VALUES (@Name, @Img) RETURNING id",
+                    new { Name = "Basic-T (Sort)", Img = "/images/Shirt.jpg" });
+                logMessages.Add("SUCCESS: Produktgruppe 'Basic-T (Sort)' oprettet.");
+            }
+
+            var shirtVariants = new List<(string Name, int Stock)>
+            {
+                ("S", 3), ("M", 7), ("L", 10), ("XL", 3), ("XXL", 3)
+            };
+
+            foreach (var v in shirtVariants)
+            {
+                var exists = await connection.ExecuteScalarAsync<bool>(
+                    "SELECT EXISTS(SELECT 1 FROM productvariants WHERE productgroupid = @Gid AND variantname = @Vname)",
+                    new { Gid = tShirtGroupId, Vname = v.Name });
+
+                if (!exists)
+                {
+                    await connection.ExecuteAsync(
+                        "INSERT INTO productvariants (productgroupid, variantname, stockquantity, price) VALUES (@Gid, @Name, @Stock, @Price)",
+                        new { Gid = tShirtGroupId, Name = v.Name, Stock = v.Stock, Price = 125.00m });
+                    logMessages.Add($"SUCCESS: T-Shirt variant '{v.Name}' oprettet med {v.Stock} stk.");
+                }
+            }
+
+            // 2. Seed Patches
+            var patchGroupId = await connection.QueryFirstOrDefaultAsync<int?>(findGroupSql, new { Name = "Patches" });
+
+            if (patchGroupId == null)
+            {
+                patchGroupId = await connection.QuerySingleAsync<int>(
+                    "INSERT INTO productgroups (groupname, imageurl) VALUES (@Name, @Img) RETURNING id",
+                    new { Name = "Patches", Img = "/images/Patch.jpg" });
+                logMessages.Add("SUCCESS: Produktgruppe 'Patches' oprettet.");
+            }
+
+            var patchExists = await connection.ExecuteScalarAsync<bool>(
+                "SELECT EXISTS(SELECT 1 FROM productvariants WHERE productgroupid = @Gid AND variantname = @Vname)",
+                new { Gid = patchGroupId, Vname = "Standard" });
+
+            if (!patchExists)
+            {
+                await connection.ExecuteAsync(
+                    "INSERT INTO productvariants (productgroupid, variantname, stockquantity, price) VALUES (@Gid, @Name, @Stock, @Price)",
+                    new { Gid = patchGroupId, Name = "Standard", Stock = 47, Price = 50.00m });
+                logMessages.Add("SUCCESS: Patch 'Standard' oprettet med 47 stk.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logMessages.Add($"FEJL under produkt-seed: {ex.Message}");
+        }
+
+        isProcessing = false;
+        logMessages.Add("Produkt-seeding afsluttet.");
     }
 }
