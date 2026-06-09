@@ -3,11 +3,13 @@
 @rendermode InteractiveServer
 
 @using System.Diagnostics
+@using System.Security.Claims
 @inject IUserService UserService
 @inject IConcertService ConcertService
 @inject IProductService ProductService
 @inject ICalendarEventService CalendarEventService
 @inject NavigationManager NavManager
+@inject IJSRuntime JS
 
 <link rel="stylesheet" href="Components/Pages/UserManagement.razor.css" />
 
@@ -40,6 +42,7 @@
                 </td>
                 <td data-label="Handling" class="text-right">
                     <button class="btn btn-edit" @onclick="() => ShowEditModal(user)">Rediger Rolle</button>
+                    <button class="btn btn-delete" @onclick="() => DeleteUserAsync(user)" disabled="@(currentUserId == user.Id)">Slet</button>
                 </td>
             </tr>
         }
@@ -144,6 +147,7 @@
 
     // Fase 3: Hentes nu fra databasen
     private List<User> usersList = new();
+    private int? currentUserId;
 
     private bool isModalVisible = false;
     private bool isCreatingNewUser = false;
@@ -157,6 +161,10 @@
     {
         var authState = await AuthState;
         var user = authState.User;
+
+        currentUserId = int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedUserId)
+            ? parsedUserId
+            : null;
 
         if (user.Identity?.IsAuthenticated != true)
         {
@@ -207,6 +215,23 @@
     private void CloseModal()
     {
         isModalVisible = false;
+    }
+
+    private async Task DeleteUserAsync(User userToDelete)
+    {
+        if (currentUserId == userToDelete.Id)
+        {
+            return;
+        }
+
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Er du sikker på, at du vil slette brugeren '{userToDelete.Username}'? Brugeren kan ikke logge ind bagefter.");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await UserService.DeleteAsync(userToDelete.Id);
+        await LoadUsers();
     }
 
     private async Task ForcePasswordReset(User user)

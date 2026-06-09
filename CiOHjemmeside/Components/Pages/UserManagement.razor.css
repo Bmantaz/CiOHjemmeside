@@ -82,6 +82,28 @@
         color: #fff;
     }
 
+.btn-delete {
+    background: none;
+    border: 1px solid #8b2e2e;
+    color: #ffb3b3;
+    padding: 0.25rem 0.75rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.2s ease;
+}
+
+    .btn-delete:hover:not(:disabled) {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+    }
+
+    .btn-delete:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
 /* Rolle-styling */
 .role-badge {
     padding: 0.25rem 0.5rem;
