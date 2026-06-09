@@ -230,7 +230,12 @@
             return;
         }
 
-        await UserService.DeleteAsync(userToDelete.Id);
+        var success = await UserService.DeleteAsync(userToDelete.Id);
+        if (!success)
+        {
+            return;
+        }
+
         await LoadUsers();
     }
 

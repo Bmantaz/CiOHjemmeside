@@ -32,7 +32,7 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
             // Rettet til lowercase
-            var sql = @"SELECT * FROM users WHERE username = @Username";
+            var sql = @"SELECT * FROM users WHERE username = @Username AND isactive = TRUE";
             return await connection.QuerySingleOrDefaultAsync<User>(sql, new { Username = username });
         }
 
@@ -57,7 +57,8 @@ namespace CiOHjemmeside.Data.Services
                     username = @Username,
                     passwordhash = @PasswordHash,
                     role = @Role,
-                    mustresetpassword = @MustResetPassword
+                    mustresetpassword = @MustResetPassword,
+                    isactive = @IsActive
                 WHERE id = @Id";
 
             var affectedRows = await connection.ExecuteAsync(sql, user);
@@ -84,8 +85,15 @@ namespace CiOHjemmeside.Data.Services
         public async Task<bool> DeleteAsync(int id)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            // Rettet til lowercase
-            var sql = @"DELETE FROM users WHERE id = @Id";
+            var ensureColumnSql = @"
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS isactive BOOLEAN NOT NULL DEFAULT TRUE;
+            ";
+            await connection.ExecuteAsync(ensureColumnSql);
+
+            var sql = @"
+                UPDATE users
+                SET isactive = FALSE
+                WHERE id = @Id";
             var affectedRows = await connection.ExecuteAsync(sql, new { Id = id });
             return affectedRows > 0;
         }
