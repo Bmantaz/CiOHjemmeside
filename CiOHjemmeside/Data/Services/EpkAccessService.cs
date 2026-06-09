@@ -1,17 +1,19 @@
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.Extensions.Configuration;
 
 namespace CiOHjemmeside.Data.Services
 {
     public class EpkAccessService : IEpkAccessService
     {
         private const string EpkAccessStorageKey = "CiO-EPK-Unlocked";
-        private const string EpkAccessCode = "1379";
 
         private readonly ProtectedSessionStorage _sessionStorage;
+        private readonly IConfiguration _configuration;
 
-        public EpkAccessService(ProtectedSessionStorage sessionStorage)
+        public EpkAccessService(ProtectedSessionStorage sessionStorage, IConfiguration configuration)
         {
             _sessionStorage = sessionStorage;
+            _configuration = configuration;
         }
 
         public async Task<bool> IsUnlockedAsync()
@@ -29,7 +31,9 @@ namespace CiOHjemmeside.Data.Services
 
         public async Task<bool> ValidateAndUnlockAsync(string accessCode)
         {
-            var isValid = string.Equals(accessCode?.Trim(), EpkAccessCode, StringComparison.Ordinal);
+            var configuredAccessCode = _configuration["Security:EpkAccessCode"];
+            var isValid = !string.IsNullOrWhiteSpace(configuredAccessCode)
+                && string.Equals(accessCode?.Trim(), configuredAccessCode, StringComparison.Ordinal);
             if (!isValid)
             {
                 return false;

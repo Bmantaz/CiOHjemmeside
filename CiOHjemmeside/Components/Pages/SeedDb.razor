@@ -6,6 +6,7 @@
 @inject IDbConnectionFactory DbFactory
 @inject IWebHostEnvironment HostEnvironment
 @inject NavigationManager NavManager
+@inject IConfiguration Configuration
 @using CiOHjemmeside.Data.Models
 @using CiOHjemmeside.Data.Services
 @using Dapper
@@ -122,7 +123,14 @@
             ("Sales", "Sales")
         };
 
-        var rawPassword = "Password123!";
+        var rawPassword = Configuration["Security:SeedUsers:DefaultPassword"];
+        if (string.IsNullOrWhiteSpace(rawPassword))
+        {
+            logMessages.Add("FEJL: Seed password er ikke konfigureret. Sæt Security:SeedUsers:DefaultPassword via user-secrets eller miljøvariabel.");
+            isProcessing = false;
+            return;
+        }
+
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(rawPassword);
 
         foreach (var (username, role) in usersToSeed)
