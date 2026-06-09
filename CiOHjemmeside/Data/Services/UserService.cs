@@ -1,6 +1,5 @@
 ﻿using CiOHjemmeside.Data.Models;
 using Dapper;
-using System.Data;
 
 namespace CiOHjemmeside.Data.Services
 {
@@ -13,19 +12,9 @@ namespace CiOHjemmeside.Data.Services
             _connectionFactory = connectionFactory;
         }
 
-        private static async Task EnsureSchemaAsync(IDbConnection connection)
-        {
-            var ensureColumnSql = @"
-                ALTER TABLE users ADD COLUMN IF NOT EXISTS isactive BOOLEAN NOT NULL DEFAULT TRUE;
-            ";
-
-            await connection.ExecuteAsync(ensureColumnSql);
-        }
-
         public async Task<IEnumerable<User>> GetAllAsync()
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
             // Rettet til lowercase
             var sql = @"SELECT * FROM users ORDER BY username ASC";
@@ -35,7 +24,6 @@ namespace CiOHjemmeside.Data.Services
         public async Task<User?> GetByIdAsync(int id)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
             // Rettet til lowercase
             var sql = @"SELECT * FROM users WHERE id = @Id";
@@ -45,17 +33,15 @@ namespace CiOHjemmeside.Data.Services
         public async Task<User?> GetByUsernameAsync(string username)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
             // Rettet til lowercase
-            var sql = @"SELECT * FROM users WHERE username = @Username AND isactive = TRUE";
+            var sql = @"SELECT * FROM users WHERE username = @Username";
             return await connection.QuerySingleOrDefaultAsync<User>(sql, new { Username = username });
         }
 
         public async Task<int> AddAsync(User user)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
             // Rettet til lowercase
             var sql = @"
@@ -69,7 +55,6 @@ namespace CiOHjemmeside.Data.Services
         public async Task<bool> UpdateAsync(User user)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
             // Rettet til lowercase
             var sql = @"
@@ -77,8 +62,7 @@ namespace CiOHjemmeside.Data.Services
                     username = @Username,
                     passwordhash = @PasswordHash,
                     role = @Role,
-                    mustresetpassword = @MustResetPassword,
-                    isactive = @IsActive
+                    mustresetpassword = @MustResetPassword
                 WHERE id = @Id";
 
             var affectedRows = await connection.ExecuteAsync(sql, user);
@@ -88,13 +72,6 @@ namespace CiOHjemmeside.Data.Services
         public async Task SetMustResetPasswordAsync(int id, bool mustReset)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-
-            await EnsureSchemaAsync(connection);
-
-            var ensureColumnSql = @"
-                ALTER TABLE users ADD COLUMN IF NOT EXISTS mustresetpassword BOOLEAN NOT NULL DEFAULT FALSE;
-            ";
-            await connection.ExecuteAsync(ensureColumnSql);
 
             var sql = @"
                 UPDATE users
@@ -107,12 +84,8 @@ namespace CiOHjemmeside.Data.Services
         public async Task<bool> DeleteAsync(int id)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
-            var sql = @"
-                UPDATE users
-                SET isactive = FALSE
-                WHERE id = @Id";
+            var sql = @"DELETE FROM users WHERE id = @Id";
             var affectedRows = await connection.ExecuteAsync(sql, new { Id = id });
             return affectedRows > 0;
         }

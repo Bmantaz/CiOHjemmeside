@@ -7,6 +7,5 @@
         public string PasswordHash { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty; // "Admin", "Member", "Sales"
         public bool MustResetPassword { get; set; }
-        public bool IsActive { get; set; } = true;
     }
 }

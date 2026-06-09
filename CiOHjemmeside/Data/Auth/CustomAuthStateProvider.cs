@@ -54,11 +54,6 @@ namespace CiOHjemmeside.Data.Auth
                 return false;
             }
 
-            if (!user.IsActive)
-            {
-                return false;
-            }
-
             if (user.MustResetPassword)
             {
                 return false;
