@@ -1,10 +1,19 @@
 # Cursed Into Oblivion Website
 
-The official website and management system for **Cursed Into Oblivion**.
+Official website and administration platform for **Cursed Into Oblivion**.
 
-This project combines a modern public-facing website with an internal administration panel used to manage the band's concerts, merchandise, Electronic Press Kit (EPK), sales, and other day-to-day activities.
+This project combines a modern public-facing website with an internal admin system used to manage concerts, merchandise, Electronic Press Kit (EPK) content, sales, and other core operations.
 
-Built with **ASP.NET Core Blazor** and **PostgreSQL**, the application is designed to be lightweight, maintainable, and easy to expand as the band grows.
+Built with **ASP.NET Core Blazor** and **PostgreSQL**, the application is designed to be lightweight, maintainable, and scalable as the band grows.
+
+---
+
+## Overview
+
+The solution consists of two primary areas:
+
+- **Public Website** – Presents the band, media, events, and EPK resources.
+- **Administration Panel** – Secure internal tools for managing content, products, users, and sales.
 
 ---
 
@@ -13,48 +22,43 @@ Built with **ASP.NET Core Blazor** and **PostgreSQL**, the application is design
 ### Public Website
 
 - Modern landing page
+- Band profile and information
 - Electronic Press Kit (EPK)
-- Band information
 - Image galleries
-- Stage riders
+- Stage rider resources
 - Concert calendar
-- Cookie consent
-- Cookie policy
-- Responsive design
+- Cookie consent and cookie policy
+- Fully responsive layout
 
 ### Administration Panel
 
-- Secure authentication
-- Dashboard
+- Secure authentication and authorization
+- Dashboard overview
 - Concert management
-- Calendar management
-- Merchandise management
-- Sales tracking
-- Sales statistics
+- Calendar event management
+- Merchandise/product management
+- Sales tracking and statistics
 - User management
-- Protected administration pages
+- Route protection for admin-only pages
 
 ---
 
-## Built With
+## Technology Stack
 
-- ASP.NET Core Blazor (.NET 8)
-- C#
-- Razor Components
-- PostgreSQL
-- Dapper
-- Npgsql
-- HTML5
-- CSS3
-- JavaScript
+- **Framework:** ASP.NET Core Blazor (.NET 8)
+- **Language:** C#
+- **UI:** Razor Components, HTML5, CSS3, JavaScript
+- **Database:** PostgreSQL
+- **Data Access:** Dapper, Npgsql
+- **Architecture:** Layered structure with dependency injection
 
 ---
 
-## Architecture
+## Project Architecture
 
-The project follows a simple layered architecture:
+The project follows a clean layered approach:
 
-```
+```text
 Components
 │
 ├── Public Pages
@@ -70,24 +74,18 @@ Data
 
 wwwroot
 │
-├── Images
-├── CSS
-└── JavaScript
+├── images
+├── css
+└── js
 ```
 
-Business logic is separated into service classes responsible for handling database operations and application logic.
+Business logic is encapsulated in service classes responsible for data access and domain-specific operations.
 
 ---
 
 ## Database
 
-The application uses **PostgreSQL** as its primary database.
-
-Data access is implemented using:
-
-- Dapper
-- Npgsql
-- Dependency Injection
+The application uses **PostgreSQL** as the primary datastore.
 
 Current modules include:
 
@@ -98,20 +96,26 @@ Current modules include:
 - Sales
 - EPK Access
 
+Data access is implemented through:
+
+- Dapper
+- Npgsql
+- Dependency Injection
+
 ---
 
-## Authentication
+## Authentication & Authorization
 
-The admin panel uses a custom authentication system with protected routes.
+The administration area uses a custom authentication flow with protected routes.
 
-Features include:
+Implemented capabilities include:
 
 - Login
 - Logout
-- Authorization
-- Role-based access
+- Authorization checks
+- Role-based access control
 
-Only authenticated users can access the administration area.
+Only authenticated users can access administrative features.
 
 ---
 
@@ -119,19 +123,20 @@ Only authenticated users can access the administration area.
 
 ### Prerequisites
 
-- Visual Studio 2022
+- Visual Studio 2022 (or later)
 - .NET 8 SDK
 - PostgreSQL
 
-### Clone the repository
+### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/CiOHjemmeside.git
+git clone https://github.com/Bmantaz/CiOHjemmeside.git
+cd CiOHjemmeside
 ```
 
-### Configure the database
+### Configure Application Settings
 
-Update your `appsettings.json` with your PostgreSQL connection string.
+Update `appsettings.json` with your PostgreSQL connection string:
 
 ```json
 {
@@ -141,51 +146,51 @@ Update your `appsettings.json` with your PostgreSQL connection string.
 }
 ```
 
-### Run the project
+### Run the Application
 
 ```bash
 dotnet run
 ```
 
-or start it directly from Visual Studio.
+You can also run the project directly through Visual Studio.
 
 ---
 
 ## Roadmap
 
-Planned features include:
+Planned enhancements:
 
-- Online merchandise store
-- Payment integration
+- Online merchandise storefront
+- Payment gateway integration
 - Inventory management
-- Booking request system
-- News section
-- Media gallery improvements
-- Additional analytics
-- Expanded role management
+- Booking request workflow
+- News publishing section
+- Expanded media gallery capabilities
+- Additional analytics and reporting
+- Extended role/permission management
 
 ---
 
 ## Screenshots
 
-Screenshots will be added as the project evolves.
+Screenshots and UI previews will be added as development progresses.
 
 ---
 
 ## Contributing
 
-This is currently a personal project developed for **Cursed Into Oblivion**, but suggestions and feedback are always welcome.
+This is currently a personal project built for **Cursed Into Oblivion**.  
+Suggestions, feedback, and constructive input are welcome.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License unless stated otherwise.
+Licensed under the **MIT License**, unless otherwise specified.
 
 ---
 
 ## Author
 
-**Bjarke Andersen**
-
-Developer, singer, and founder of the Cursed Into Oblivion website project.
+**Bjarke Andersen**  
+Developer, vocalist, and founder of the Cursed Into Oblivion website project.
