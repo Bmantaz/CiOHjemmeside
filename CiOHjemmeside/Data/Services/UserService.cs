@@ -26,8 +26,7 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            // Rettet til lowercase
-            var sql = @"SELECT * FROM users WHERE id = @Id";
+            var sql = @"SELECT id, username, passwordhash, role, mustresetpassword FROM users WHERE id = @Id";
             return await connection.QuerySingleOrDefaultAsync<User>(sql, new { Id = id });
         }
 
@@ -35,8 +34,7 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            // Rettet til lowercase
-            var sql = @"SELECT * FROM users WHERE username = @Username";
+            var sql = @"SELECT id, username, passwordhash, role, mustresetpassword FROM users WHERE username = @Username";
             return await connection.QuerySingleOrDefaultAsync<User>(sql, new { Username = username });
         }
 

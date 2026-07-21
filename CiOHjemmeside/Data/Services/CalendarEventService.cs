@@ -15,9 +15,9 @@ namespace CiOHjemmeside.Data.Services
         public async Task<IEnumerable<CalendarEvent>> GetEventsForPeriodAsync(DateTime startTime, DateTime endTime)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            // Rettet til lowercase
             var sql = @"
-                SELECT * FROM calendarevents
+                SELECT id, title, eventtype, starttime, endtime, notes, createdbyuserid
+                FROM calendarevents
                 WHERE starttime >= @StartTime AND starttime <= @EndTime
                 ORDER BY starttime ASC";
 
@@ -27,8 +27,7 @@ namespace CiOHjemmeside.Data.Services
         public async Task<CalendarEvent?> GetByIdAsync(int id)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            // Rettet til lowercase
-            var sql = @"SELECT * FROM calendarevents WHERE id = @Id";
+            var sql = @"SELECT id, title, eventtype, starttime, endtime, notes, createdbyuserid FROM calendarevents WHERE id = @Id";
             return await connection.QuerySingleOrDefaultAsync<CalendarEvent>(sql, new { Id = id });
         }
 

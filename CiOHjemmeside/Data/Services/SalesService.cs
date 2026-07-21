@@ -6,10 +6,12 @@ namespace CiOHjemmeside.Data.Services
     public class SalesService : ISalesService
     {
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ILogger<SalesService> _logger;
 
-        public SalesService(IDbConnectionFactory connectionFactory)
+        public SalesService(IDbConnectionFactory connectionFactory, ILogger<SalesService> logger)
         {
             _connectionFactory = connectionFactory;
+            _logger = logger;
         }
 
         public async Task<List<ProductGroup>> GetAllProductGroupsWithVariantsAsync()
@@ -87,7 +89,30 @@ namespace CiOHjemmeside.Data.Services
                         },
                         transaction);
 
-                    // 3. Opdater det faktiske lager i databasen
+                    // 3. Lås varianten og verificér at der er nok på lager, før vi trækker fra det.
+                    // FOR UPDATE forhindrer to samtidige salg i at overtrække samme variant.
+                    var currentStock = await connection.QuerySingleOrDefaultAsync<int?>(
+                        @"SELECT stockquantity FROM productvariants 
+                          WHERE variantname = @VariantName 
+                          AND productgroupid = (SELECT id FROM productgroups WHERE groupname = @ProductGroupName LIMIT 1)
+                          FOR UPDATE",
+                        new { item.VariantName, item.ProductGroupName },
+                        transaction);
+
+                    if (currentStock == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Varianten '{item.VariantName}' under '{item.ProductGroupName}' findes ikke på lager.");
+                    }
+
+                    if (currentStock.Value < item.Quantity)
+                    {
+                        throw new InvalidOperationException(
+                            $"Ikke nok på lager af '{item.VariantName}' ({item.ProductGroupName}). " +
+                            $"Ønsket: {item.Quantity}, på lager: {currentStock.Value}.");
+                    }
+
+                    // 4. Opdater det faktiske lager i databasen
                     await connection.ExecuteAsync(
                         @"UPDATE productvariants 
                           SET stockquantity = stockquantity - @Quantity 
@@ -99,9 +124,10 @@ namespace CiOHjemmeside.Data.Services
 
                 transaction.Commit();
             }
-            catch
+            catch (Exception ex)
             {
                 transaction.Rollback();
+                _logger.LogWarning(ex, "Salg kunne ikke gennemføres for bruger {SoldByUserId}. Transaktionen er rullet tilbage.", soldByUserId);
                 throw;
             }
         }
