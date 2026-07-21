@@ -1,6 +1,7 @@
 ﻿@page "/users"
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 
 @using System.Diagnostics
 @inject IUserService UserService
@@ -139,9 +140,6 @@
 
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState> AuthState { get; set; } = default!;
-
     // Fase 3: Hentes nu fra databasen
     private List<User> usersList = new();
 
@@ -155,22 +153,6 @@
     // OPDATERET (FASE 3): Kører nu OnInitializedAsync
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthState;
-        var user = authState.User;
-
-        if (user.Identity?.IsAuthenticated != true)
-        {
-            NavManager.NavigateTo("/login", forceLoad: true);
-            return;
-        }
-
-        if (!user.IsInRole("Admin"))
-        {
-            var target = user.IsInRole("Sales") ? "/sales" : "/dashboard";
-            NavManager.NavigateTo(target, forceLoad: true);
-            return;
-        }
-
         // Fase 3: Hent rigtige data fra databasen
         await LoadUsers();
     }
@@ -189,14 +171,22 @@
         isModalVisible = true;
     }
 
-    private void ShowEditModal(User userToEdit)
+    private async Task ShowEditModal(User userToEdit)
     {
+        // GetAllAsync() no longer returns the password hash (to avoid exposing it in list views),
+        // so fetch the full user record by ID to preserve the existing hash on save.
+        var fullUser = await UserService.GetByIdAsync(userToEdit.Id);
+        if (fullUser == null)
+        {
+            return;
+        }
+
         currentUser = new User
         {
-            Id = userToEdit.Id,
-            Username = userToEdit.Username,
-            Role = userToEdit.Role,
-            PasswordHash = userToEdit.PasswordHash // Vigtigt at bevare den gamle hash
+            Id = fullUser.Id,
+            Username = fullUser.Username,
+            Role = fullUser.Role,
+            PasswordHash = fullUser.PasswordHash // Vigtigt at bevare den gamle hash
         };
         newPassword = "";
         isCreatingNewUser = false;

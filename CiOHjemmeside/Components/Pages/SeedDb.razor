@@ -1,6 +1,7 @@
 ﻿@page "/seeddb"
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 
 @inject IUserService UserService
 @inject IDbConnectionFactory DbFactory
@@ -83,28 +84,11 @@
 </div>
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState> AuthState { get; set; } = default!;
-
     private List<string> logMessages = new();
     private bool isProcessing = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        var authState = await AuthState;
-        var user = authState.User;
-
-        if (user.Identity?.IsAuthenticated != true)
-        {
-            NavManager.NavigateTo("/login", forceLoad: true);
-            return;
-        }
-
-        if (!user.IsInRole("Admin"))
-        {
-            var target = user.IsInRole("Sales") ? "/sales" : "/dashboard";
-            NavManager.NavigateTo(target, forceLoad: true);
-        }
     }
 
     private async Task SeedUsers()

@@ -1,6 +1,5 @@
 using CiOHjemmeside.Data.Models;
 using Dapper;
-using System.Data;
 
 namespace CiOHjemmeside.Data.Services
 {
@@ -56,7 +55,6 @@ namespace CiOHjemmeside.Data.Services
             if (!normalizedItems.Any()) return;
 
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
             using var transaction = connection.BeginTransaction();
 
             try
@@ -121,7 +119,6 @@ namespace CiOHjemmeside.Data.Services
         private async Task<SalesStatisticsResult> GetStatisticsForRangeInternalAsync(DateTime resultDate, DateTime rangeStart, DateTime rangeEndExclusive)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
             var rows = (await connection.QueryAsync<SalesStatisticRow>(
                 @"SELECT
@@ -157,7 +154,6 @@ namespace CiOHjemmeside.Data.Services
         public async Task<List<DailySalesSummary>> GetDailySalesSummaryAsync(DateTime from, DateTime to)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
 
             var rangeStart = from.Date;
             var rangeEnd = to.Date.AddDays(1);
@@ -175,30 +171,6 @@ namespace CiOHjemmeside.Data.Services
                 new { RangeStart = rangeStart, RangeEnd = rangeEnd })).ToList();
 
             return rows;
-        }
-
-        private static Task EnsureSchemaAsync(IDbConnection connection)
-        {
-            const string sql = @"
-                CREATE TABLE IF NOT EXISTS sales (
-                    id SERIAL PRIMARY KEY,
-                    soldat TIMESTAMPTZ NOT NULL,
-                    soldbyuserid INT NOT NULL,
-                    totalamount NUMERIC(10,2) NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS saleitems (
-                    id SERIAL PRIMARY KEY,
-                    saleid INT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-                    productgroupname TEXT NOT NULL,
-                    variantname TEXT NOT NULL,
-                    quantity INT NOT NULL,
-                    unitprice NUMERIC(10,2) NOT NULL,
-                    lineamount NUMERIC(10,2) NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS idx_sales_soldat ON sales (soldat);
-                CREATE INDEX IF NOT EXISTS idx_saleitems_saleid ON saleitems (saleid);
-            ";
-            return connection.ExecuteAsync(sql);
         }
 
         private class SalesSummaryRow

@@ -40,12 +40,6 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            var ensureColumnsSql = @"
-                ALTER TABLE concerts ADD COLUMN IF NOT EXISTS otherbands TEXT;
-                ALTER TABLE concerts ADD COLUMN IF NOT EXISTS facebookeventlink TEXT;
-            ";
-            await connection.ExecuteAsync(ensureColumnsSql);
-
             var sql = @"
                 INSERT INTO concerts (venuename, city, country, eventdate, otherbands, ticketlink, facebookeventlink, issoldout)
                 VALUES (@VenueName, @City, @Country, @EventDate, @OtherBands, @TicketLink, @FacebookEventLink, @IsSoldOut)
@@ -57,12 +51,6 @@ namespace CiOHjemmeside.Data.Services
         public async Task UpdateAsync(Concert concert)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-
-            var ensureColumnsSql = @"
-                ALTER TABLE concerts ADD COLUMN IF NOT EXISTS otherbands TEXT;
-                ALTER TABLE concerts ADD COLUMN IF NOT EXISTS facebookeventlink TEXT;
-            ";
-            await connection.ExecuteAsync(ensureColumnsSql);
 
             var sql = @"
                 UPDATE concerts
