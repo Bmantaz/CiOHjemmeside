@@ -108,13 +108,20 @@ namespace CiOHjemmeside.Data.Services
             }
         }
 
-        public async Task<SalesStatisticsResult> GetStatisticsForDateAsync(DateTime date)
+        public Task<SalesStatisticsResult> GetStatisticsForDateAsync(DateTime date)
+        {
+            return GetStatisticsForRangeInternalAsync(date.Date, date.Date, date.Date.AddDays(1));
+        }
+
+        public Task<SalesStatisticsResult> GetStatisticsForRangeAsync(DateTime from, DateTime to)
+        {
+            return GetStatisticsForRangeInternalAsync(from.Date, from.Date, to.Date.AddDays(1));
+        }
+
+        private async Task<SalesStatisticsResult> GetStatisticsForRangeInternalAsync(DateTime resultDate, DateTime rangeStart, DateTime rangeEndExclusive)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
             await EnsureSchemaAsync(connection);
-
-            var dayStart = date.Date;
-            var dayEnd = dayStart.AddDays(1);
 
             var rows = (await connection.QueryAsync<SalesStatisticRow>(
                 @"SELECT
@@ -124,10 +131,10 @@ namespace CiOHjemmeside.Data.Services
                       COALESCE(SUM(si.lineamount), 0)::numeric AS Revenue
                   FROM sales s
                   INNER JOIN saleitems si ON si.saleid = s.id
-                  WHERE s.soldat >= @DayStart AND s.soldat < @DayEnd
+                  WHERE s.soldat >= @RangeStart AND s.soldat < @RangeEnd
                   GROUP BY si.productgroupname, si.variantname
                   ORDER BY si.productgroupname, si.variantname",
-                new { DayStart = dayStart, DayEnd = dayEnd })).ToList();
+                new { RangeStart = rangeStart, RangeEnd = rangeEndExclusive })).ToList();
 
             var summary = await connection.QuerySingleAsync<SalesSummaryRow>(
                 @"SELECT
@@ -135,16 +142,39 @@ namespace CiOHjemmeside.Data.Services
                       COALESCE(SUM(si.lineamount), 0)::numeric AS TotalRevenue
                   FROM sales s
                   INNER JOIN saleitems si ON si.saleid = s.id
-                  WHERE s.soldat >= @DayStart AND s.soldat < @DayEnd",
-                new { DayStart = dayStart, DayEnd = dayEnd });
+                  WHERE s.soldat >= @RangeStart AND s.soldat < @RangeEnd",
+                new { RangeStart = rangeStart, RangeEnd = rangeEndExclusive });
 
             return new SalesStatisticsResult
             {
-                Date = dayStart,
+                Date = resultDate,
                 Rows = rows,
                 TotalItemsSold = summary.TotalItemsSold,
                 TotalRevenue = summary.TotalRevenue
             };
+        }
+
+        public async Task<List<DailySalesSummary>> GetDailySalesSummaryAsync(DateTime from, DateTime to)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync();
+            await EnsureSchemaAsync(connection);
+
+            var rangeStart = from.Date;
+            var rangeEnd = to.Date.AddDays(1);
+
+            var rows = (await connection.QueryAsync<DailySalesSummary>(
+                @"SELECT
+                      date_trunc('day', s.soldat)::date AS Date,
+                      COALESCE(SUM(si.quantity), 0)::int AS TotalItemsSold,
+                      COALESCE(SUM(si.lineamount), 0)::numeric AS TotalRevenue
+                  FROM sales s
+                  INNER JOIN saleitems si ON si.saleid = s.id
+                  WHERE s.soldat >= @RangeStart AND s.soldat < @RangeEnd
+                  GROUP BY date_trunc('day', s.soldat)
+                  ORDER BY date_trunc('day', s.soldat)",
+                new { RangeStart = rangeStart, RangeEnd = rangeEnd })).ToList();
+
+            return rows;
         }
 
         private static Task EnsureSchemaAsync(IDbConnection connection)
