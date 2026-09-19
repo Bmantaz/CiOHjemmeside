@@ -129,13 +129,18 @@
     </section>
 
     <section id="gallery" class="content-section image-section">
-        <img src="/images/Updated%20Band%20Picuture%20FULL.jpg" alt="Cursed Into Oblivion full band" class="full-band-image" />
+        <div class="band-photo">
+            <img src="@BandPhotoUrl" alt="Cursed Into Oblivion" class="full-band-image" />
+            @if (ShowBandPhotoStamp)
+            {
+                <span class="band-photo-stamp">Soon</span>
+            }
+        </div>
         <div class="band-bio-grid">
             <div class="member-bio"><strong>Henrik Mørch</strong><span>Drums</span></div>
             <div class="member-bio"><strong>Sebastian Viuf</strong><span>Guitar</span></div>
-            <div class="member-bio"><strong>Michal Andersen</strong><span>Vocals</span></div>
+            <div class="member-bio"><strong>Bjarke Pallisgaard</strong><span>Vocals</span></div>
             <div class="member-bio"><strong>Kristofer Ingi</strong><span>Guitar</span></div>
-            <div class="member-bio"><strong>Bjarke Pallisgaard</strong><span>Bass, Backing vocals</span></div>
         </div>
     </section>
 
@@ -146,11 +151,17 @@
 </div>
 
 @code {
+    // Bandbillede: laeg den nye fil i wwwroot/images og skift kun stien her.
+    private const string BandPhotoUrl = "/images/SPEAR%20LOGO.png";
+
+    // Saet til false naar det rigtige bandbillede er paa plads.
+    private const bool ShowBandPhotoStamp = true;
+
     private List<Concert> upcomingConcerts = new();
     private bool isLoadingConcerts = true;
     private readonly List<FeaturedVideo> featuredVideos = new()
     {
-        new FeaturedVideo("Video 1", "https://www.youtube.com/watch?v=OnJBkPtUCdY", "/images/Updated%20Band%20Picuture%20FULL.jpg"),
+        new FeaturedVideo("Video 1", "https://www.youtube.com/watch?v=OnJBkPtUCdY", "/images/SPEAR%20LOGO.png"),
         new FeaturedVideo("Video 2", "https://www.youtube.com/watch?v=Ej8VHy-4O6I", "/images/HEADER.png"),
         new FeaturedVideo("Video 3", "https://www.youtube.com/watch?v=_1F33fHpVOE", "/images/SPEAR%20LOGO.png")
     };

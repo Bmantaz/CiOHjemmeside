@@ -41,9 +41,38 @@
     border: 1px solid #1f1f1f;
 }
 
+.band-photo {
+    position: relative;
+    display: block;
+}
+
+.band-photo-stamp {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-12deg);
+    font-family: 'Oswald', 'Haettenschweiler', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(2.2rem, 7vw, 4.5rem);
+    letter-spacing: 0.18em;
+    text-indent: 0.18em;
+    text-transform: uppercase;
+    color: #e01e37;
+    border: 0.12em solid #e01e37;
+    border-radius: 0.1em;
+    padding: 0.18em 0.35em;
+    opacity: 0.88;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* object-fit: contain, saa baade et bredt bandfoto og det hoeje spear-logo passer uden beskaering. */
 .full-band-image {
+    display: block;
     width: 100%;
+    max-height: 560px;
+    object-fit: contain;
     border: 1px solid #2a2a2a;
+    background: #0a0a0a;
 }
 
 .release-section {
@@ -254,7 +283,7 @@
 .band-bio-grid {
     margin-top: 1rem;
     display: grid;
-    grid-template-columns: repeat(5, minmax(140px, 1fr));
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
     gap: 0.6rem;
 }
 

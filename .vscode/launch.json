@@ -5,11 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "chrome",
+            "name": "Run CiO website",
+            "type": "coreclr",
             "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/CiOHjemmeside/bin/Debug/net8.0/CiOHjemmeside.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/CiOHjemmeside",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5187"
+            },
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s"
+            }
+        },
+        {
+            "name": "Attach to running process",
+            "type": "coreclr",
+            "request": "attach"
         }
     ]
 }
