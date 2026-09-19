@@ -12,6 +12,12 @@ namespace CiOHjemmeside.Data.Services
         /// </summary>
         Task<IEnumerable<Concert>> GetUpcomingConcertsAsync();
 
+        /// <summary>
+        /// Henter alle koncerter (baade afholdte og kommende), nyeste foerst.
+        /// Bruges bl.a. naar et salg skal knyttes til et show.
+        /// </summary>
+        Task<IEnumerable<Concert>> GetAllConcertsAsync();
+
         Task<int> AddAsync(Concert concert);
 
         Task UpdateAsync(Concert concert);

@@ -25,34 +25,44 @@
         else
         {
             <ul class="concert-list">
+                <li class="concert-item concert-header">
+                    <span class="concert-date">Date</span>
+                    <span class="concert-venue">Venue</span>
+                    <span class="concert-city">City</span>
+                    <span class="concert-country">Country</span>
+                    <span class="concert-with">With</span>
+                    <span class="concert-status">Tickets</span>
+                    <span class="concert-event">Event</span>
+                </li>
                 @foreach (var concert in upcomingConcerts)
                 {
                     <li class="concert-item">
                         <span class="concert-date">@concert.EventDate.ToString("dd. MMM yyyy").ToUpper()</span>
                         <span class="concert-venue">@concert.VenueName</span>
-                        <span class="concert-location">@concert.City, @concert.Country</span>
-
-                        @if (!string.IsNullOrWhiteSpace(concert.OtherBands))
-                        {
-                            <span class="concert-location">With: @concert.OtherBands</span>
-                        }
+                        <span class="concert-city">@concert.City</span>
+                        <span class="concert-country">@concert.Country</span>
+                        <span class="concert-with">@concert.OtherBands</span>
 
                         @if (concert.IsSoldOut)
                         {
-                            <span class="concert-sold-out">[SOLD OUT]</span>
+                            <span class="concert-status concert-sold-out">[SOLD OUT]</span>
                         }
                         else if (!string.IsNullOrWhiteSpace(concert.TicketLink))
                         {
-                            <a href="@EnsureAbsoluteUrl(concert.TicketLink)" target="_blank" rel="noopener noreferrer" class="concert-ticket-link">[TICKETS]</a>
+                            <a href="@EnsureAbsoluteUrl(concert.TicketLink)" target="_blank" rel="noopener noreferrer" class="concert-status concert-ticket-link">[TICKETS]</a>
                         }
                         else
                         {
-                            <span class="concert-soon">[SOON]</span>
+                            <span class="concert-status concert-soon">[SOON]</span>
                         }
 
                         @if (!string.IsNullOrWhiteSpace(concert.FacebookEventLink))
                         {
-                            <a href="@EnsureAbsoluteUrl(concert.FacebookEventLink)" target="_blank" rel="noopener noreferrer" class="concert-ticket-link">[FACEBOOK]</a>
+                            <a href="@EnsureAbsoluteUrl(concert.FacebookEventLink)" target="_blank" rel="noopener noreferrer" class="concert-event concert-ticket-link">[EVENT]</a>
+                        }
+                        else
+                        {
+                            <span class="concert-event"></span>
                         }
                     </li>
                 }

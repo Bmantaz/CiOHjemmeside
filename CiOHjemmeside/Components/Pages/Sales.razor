@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 
 @inject ISalesService SalesService
+@inject IConcertService ConcertService
 @inject NavigationManager NavManager
 @inject ProtectedSessionStorage SessionStorage
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
@@ -42,6 +43,19 @@
     <div class="cart-section">
         <h3>Indkøbskurv</h3>
         <p class="seller-indicator">Aktiv sælger: <strong>@selectedRecipientName</strong></p>
+
+        <div class="show-picker">
+            <label for="show-select">Show / spillested</label>
+            <select id="show-select" class="form-select" @bind="selectedConcertId">
+                <option value="">Ukendt / ikke et show</option>
+                @foreach (var concert in concerts)
+                {
+                    <option value="@concert.Id">
+                        @concert.EventDate.ToString("dd-MM-yyyy") - @concert.VenueName@(string.IsNullOrWhiteSpace(concert.City) ? "" : $", {concert.City}")
+                    </option>
+                }
+            </select>
+        </div>
 
         @if (!cart.Any())
         {
@@ -184,6 +198,8 @@
     private bool isSellerSelectionVisible = false;
     private string selectedPaymentMethod = "MobilePay";
     private string cashReceivedInput = string.Empty;
+    private List<Concert> concerts = new();
+    private int? selectedConcertId;
 
     private readonly List<MobilePayRecipient> mobilePayRecipients = new()
     {
@@ -210,6 +226,24 @@
 
         await LoadSellerSelectionAsync();
         await LoadProductsAsync();
+        await LoadConcertsAsync();
+    }
+
+    private async Task LoadConcertsAsync()
+    {
+        try
+        {
+            concerts = (await ConcertService.GetAllConcertsAsync()).ToList();
+
+            // Forvalg et show der ligger i dag, saa saelgeren normalt ikke skal roere dropdownen.
+            var today = DateTime.Today;
+            selectedConcertId = concerts
+                .FirstOrDefault(c => c.EventDate.Date == today)?.Id;
+        }
+        catch (Exception ex)
+        {
+            saleErrorMessage = $"Kunne ikke hente shows: {ex.Message}";
+        }
     }
 
     private async Task LoadProductsAsync()
@@ -284,7 +318,7 @@
                 })
                 .ToList();
 
-            await SalesService.RecordSaleAsync(_currentUserId, saleItems);
+            await SalesService.RecordSaleAsync(_currentUserId, saleItems, null, selectedConcertId);
 
             saleStatusMessage = "Salg gennemført!";
             cart.Clear();

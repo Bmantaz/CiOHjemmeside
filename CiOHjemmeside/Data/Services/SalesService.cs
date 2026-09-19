@@ -51,7 +51,7 @@ namespace CiOHjemmeside.Data.Services
             return groupDict.Values.ToList();
         }
 
-        public async Task RecordSaleAsync(int soldByUserId, IEnumerable<SaleItemInput> items, DateTime? soldAtUtc = null)
+        public async Task RecordSaleAsync(int soldByUserId, IEnumerable<SaleItemInput> items, DateTime? soldAtUtc = null, int? concertId = null)
         {
             var normalizedItems = items.Where(i => i.Quantity > 0).ToList();
             if (!normalizedItems.Any()) return;
@@ -66,10 +66,10 @@ namespace CiOHjemmeside.Data.Services
 
                 // 1. Opret salgs-hovedpost
                 var saleId = await connection.QuerySingleAsync<int>(
-                    @"INSERT INTO sales (soldat, soldbyuserid, totalamount)
-                      VALUES (@SoldAt, @SoldByUserId, @TotalAmount)
+                    @"INSERT INTO sales (soldat, soldbyuserid, totalamount, concertid)
+                      VALUES (@SoldAt, @SoldByUserId, @TotalAmount, @ConcertId)
                       RETURNING id",
-                    new { SoldAt = soldAt, SoldByUserId = soldByUserId, TotalAmount = totalAmount },
+                    new { SoldAt = soldAt, SoldByUserId = soldByUserId, TotalAmount = totalAmount, ConcertId = concertId },
                     transaction);
 
                 foreach (var item in normalizedItems)
@@ -130,6 +130,36 @@ namespace CiOHjemmeside.Data.Services
                 _logger.LogWarning(ex, "Salg kunne ikke gennemføres for bruger {SoldByUserId}. Transaktionen er rullet tilbage.", soldByUserId);
                 throw;
             }
+        }
+
+        public async Task<List<VenueSalesSummary>> GetSalesByVenueAsync(DateTime from, DateTime to)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync();
+
+            // Grupperer paa koncert. Salg uden koncert (concertid IS NULL) falder
+            // sammen i én "Ukendt"-gruppe, saa historiske salg stadig taeller med.
+            const string sql = @"
+                SELECT
+                    c.id AS ConcertId,
+                    COALESCE(c.venuename, 'Ukendt') AS VenueName,
+                    c.city AS City,
+                    c.country AS Country,
+                    c.eventdate AS EventDate,
+                    COALESCE(SUM(si.quantity), 0)::int AS TotalItemsSold,
+                    COALESCE(SUM(si.lineamount), 0)::numeric AS TotalRevenue
+                FROM sales s
+                JOIN saleitems si ON si.saleid = s.id
+                LEFT JOIN concerts c ON c.id = s.concertid
+                WHERE s.soldat >= @From AND s.soldat < @To
+                GROUP BY c.id, c.venuename, c.city, c.country, c.eventdate
+                HAVING COALESCE(SUM(si.quantity), 0) > 0
+                ORDER BY TotalItemsSold DESC";
+
+            var rows = await connection.QueryAsync<VenueSalesSummary>(
+                sql,
+                new { From = from.Date, To = to.Date.AddDays(1) });
+
+            return rows.ToList();
         }
 
         public Task<SalesStatisticsResult> GetStatisticsForDateAsync(DateTime date)

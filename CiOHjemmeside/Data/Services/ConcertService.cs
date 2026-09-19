@@ -36,6 +36,27 @@ namespace CiOHjemmeside.Data.Services
             return await connection.QueryAsync<Concert>(sql, new { CurrentDate = DateTime.UtcNow });
         }
 
+        public async Task<IEnumerable<Concert>> GetAllConcertsAsync()
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync();
+
+            var sql = @"
+                SELECT 
+                    id, 
+                    venuename, 
+                    city, 
+                    country, 
+                    eventdate, 
+                    otherbands,
+                    ticketlink, 
+                    facebookeventlink,
+                    issoldout
+                FROM concerts
+                ORDER BY eventdate DESC";
+
+            return await connection.QueryAsync<Concert>(sql);
+        }
+
         public async Task<int> AddAsync(Concert concert)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();

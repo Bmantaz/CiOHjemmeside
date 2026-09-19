@@ -77,8 +77,8 @@
 }
 
 .concert-item {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 130px minmax(120px, 1.4fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(120px, 1.6fr) 110px 100px;
     align-items: center;
     gap: 0.75rem;
     padding: 0.9rem 0;
@@ -89,27 +89,39 @@
     border-top: 1px solid #222;
 }
 
+.concert-header {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: #666;
+    border-bottom: 1px solid #333;
+}
+
+    .concert-header span {
+        color: #666;
+    }
+
 .concert-date {
-    width: 170px;
     color: #fff;
 }
 
 .concert-venue {
-    flex: 1;
-    min-width: 150px;
-    padding: 0 1rem;
     color: #fff;
 }
 
-.concert-location {
-    width: 160px;
+.concert-city,
+.concert-country,
+.concert-with {
     color: #888;
+    font-size: 0.9rem;
+}
+
+.concert-status,
+.concert-event {
+    text-align: right;
+    font-weight: bold;
 }
 
 .concert-ticket-link {
-    width: 100px;
-    text-align: right;
-    font-weight: bold;
     color: #fff;
     text-decoration: none;
 }
@@ -119,16 +131,10 @@
     }
 
 .concert-sold-out {
-    width: 100px;
-    text-align: right;
-    font-weight: bold;
     color: #dc3545;
 }
 
 .concert-soon {
-    width: 100px;
-    text-align: right;
-    font-weight: bold;
     color: #999;
 }
 
@@ -198,19 +204,34 @@
     }
 
     .concert-item {
+        display: flex;
         flex-direction: column;
         align-items: flex-start;
     }
 
+    /* Kolonneoverskrifter giver ikke mening i mobilvisningen. */
+    .concert-header {
+        display: none;
+    }
+
     .concert-date,
     .concert-venue,
-    .concert-location,
-    .concert-ticket-link,
-    .concert-sold-out,
-    .concert-soon {
+    .concert-city,
+    .concert-country,
+    .concert-with,
+    .concert-status,
+    .concert-event {
         width: 100%;
         padding: 0.25rem 0;
         text-align: left;
+    }
+
+    /* Undg\u00e5 tomme linjer p\u00e5 mobil n\u00e5r et felt ikke er udfyldt. */
+    .concert-city:empty,
+    .concert-country:empty,
+    .concert-with:empty,
+    .concert-event:empty {
+        display: none;
     }
 
     .band-bio-grid {

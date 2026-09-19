@@ -104,6 +104,28 @@
         cursor: not-allowed;
     }
 
+/* Status- og bekraeftelsestekster */
+.status-message {
+    color: #7ee08a;
+    margin: 0.5rem 0;
+}
+
+.status-error {
+    color: #ffb3b3;
+    margin: 0.5rem 0;
+}
+
+.delete-confirm-text {
+    margin-right: 0.5rem;
+    color: #ffb3b3;
+}
+
+.password-hint {
+    font-size: 0.85rem;
+    opacity: 0.75;
+    margin-top: 0.75rem;
+}
+
 /* Rolle-styling */
 .role-badge {
     padding: 0.25rem 0.5rem;

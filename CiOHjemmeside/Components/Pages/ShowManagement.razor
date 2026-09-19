@@ -23,8 +23,9 @@ else
                 <th>Date</th>
                 <th>Venue</th>
                 <th>City</th>
+                <th>Status</th>
                 <th>Tickets</th>
-                <th>Facebook</th>
+                <th>Event</th>
                 <th></th>
             </tr>
         </thead>
@@ -36,6 +37,12 @@ else
                     <td>@show.VenueName</td>
                     <td>@show.City</td>
                     <td>
+                        @if (show.IsSoldOut)
+                        {
+                            <span class="badge bg-danger">Sold out</span>
+                        }
+                    </td>
+                    <td>
                         @if (!string.IsNullOrWhiteSpace(show.TicketLink))
                         {
                             <a href="@show.TicketLink" target="_blank" rel="noopener noreferrer">Tickets</a>
@@ -44,7 +51,7 @@ else
                     <td>
                         @if (!string.IsNullOrWhiteSpace(show.FacebookEventLink))
                         {
-                            <a href="@show.FacebookEventLink" target="_blank" rel="noopener noreferrer">Facebook</a>
+                            <a href="@show.FacebookEventLink" target="_blank" rel="noopener noreferrer">Event</a>
                         }
                     </td>
                     <td class="text-end">
@@ -94,8 +101,13 @@ else
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Facebook event link</label>
+        <label class="form-label">Event link</label>
         <InputText class="form-control" @bind-Value="currentConcert.FacebookEventLink" />
+    </div>
+
+    <div class="mb-3 form-check">
+        <InputCheckbox class="form-check-input" id="isSoldOut" @bind-Value="currentConcert.IsSoldOut" />
+        <label class="form-check-label" for="isSoldOut">Sold out</label>
     </div>
 
     <div class="d-flex gap-2">

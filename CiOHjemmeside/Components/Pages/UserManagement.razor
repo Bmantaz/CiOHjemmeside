@@ -23,6 +23,15 @@
 
 <p>Admin-side til at oprette og redigere brugerroller.</p>
 
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <p class="status-message">@statusMessage</p>
+}
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="status-error">@errorMessage</p>
+}
+
 <table class="admin-table">
     <thead>
         <tr>
@@ -40,7 +49,21 @@
                     <span class="role-badge @user.Role.ToLower()">@user.Role</span>
                 </td>
                 <td data-label="Handling" class="text-right">
-                    <button class="btn btn-edit" @onclick="() => ShowEditModal(user)">Rediger Rolle</button>
+                    @if (confirmDeleteUserId == user.Id)
+                    {
+                        <span class="delete-confirm-text">Slet @user.Username?</span>
+                        <button class="btn btn-delete" disabled="@isProcessingDelete" @onclick="() => DeleteUser(user)">Ja, slet</button>
+                        <button class="btn btn-cancel" disabled="@isProcessingDelete" @onclick="() => confirmDeleteUserId = null">Fortryd</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-edit" @onclick="() => ShowEditModal(user)">Rediger Rolle</button>
+                        <button class="btn btn-edit" @onclick="() => ShowPasswordModal(user)">Skift Password</button>
+                        @if (user.Id != currentUserId)
+                        {
+                            <button class="btn btn-delete" @onclick="() => confirmDeleteUserId = user.Id">Slet</button>
+                        }
+                    }
                 </td>
             </tr>
         }
@@ -107,6 +130,53 @@
 }
 
 
+@if (isPasswordModalVisible)
+{
+    <div class="modal-backdrop" @onclick="ClosePasswordModal"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Skift Password: @passwordUserName</h3>
+            <button class="btn-close-modal" @onclick="ClosePasswordModal">×</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group-modal">
+                <label>Nyt password</label>
+                <input type="password" class="form-control-modal" @bind="newPasswordValue" />
+            </div>
+
+            <div class="form-group-modal">
+                <label>Bekræft password</label>
+                <input type="password" class="form-control-modal" @bind="confirmPasswordValue" />
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(passwordError))
+            {
+                <p class="status-error">@passwordError</p>
+            }
+
+            <p class="password-hint">
+                Mindst 8 tegn, et stort bogstav, et tal og et specialtegn.
+            </p>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" @onclick="ClosePasswordModal">Annuller</button>
+            <button type="button" class="btn btn-save" disabled="@isProcessingPassword" @onclick="HandlePasswordSave">
+                @if (isProcessingPassword)
+                {
+                    <span class="spinner-border spinner-border-sm"></span>
+                }
+                else
+                {
+                    <span>Gem password</span>
+                }
+            </button>
+        </div>
+    </div>
+}
+
+
 <div class="admin-section">
     <h2>Database Forbindelsestest</h2>
     <p>Kør en test af alle Dapper-services for at validere forbindelsen til databasen.</p>
@@ -150,9 +220,40 @@
     private User currentUser = new();
     private string newPassword = "";
 
-    // OPDATERET (FASE 3): Kører nu OnInitializedAsync
+    private string statusMessage = string.Empty;
+    private string errorMessage = string.Empty;
+
+    // Skift password
+    private bool isPasswordModalVisible = false;
+    private bool isProcessingPassword = false;
+    private int passwordUserId;
+    private string passwordUserName = string.Empty;
+    private string newPasswordValue = string.Empty;
+    private string confirmPasswordValue = string.Empty;
+    private string passwordError = string.Empty;
+
+    // Sletning
+    private int? confirmDeleteUserId;
+    private bool isProcessingDelete = false;
+
+    // Den indloggede admin, saa man ikke kan slette sig selv.
+    private int currentUserId;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
+        if (AuthStateTask is not null)
+        {
+            var authState = await AuthStateTask;
+            var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idClaim, out var parsedId))
+            {
+                currentUserId = parsedId;
+            }
+        }
+
         // Fase 3: Hent rigtige data fra databasen
         await LoadUsers();
     }
@@ -203,6 +304,122 @@
     {
         await UserService.SetMustResetPasswordAsync(user.Id, true);
         await LoadUsers();
+    }
+
+    private void ShowPasswordModal(User user)
+    {
+        passwordUserId = user.Id;
+        passwordUserName = user.Username;
+        newPasswordValue = string.Empty;
+        confirmPasswordValue = string.Empty;
+        passwordError = string.Empty;
+        statusMessage = string.Empty;
+        errorMessage = string.Empty;
+        confirmDeleteUserId = null;
+        isPasswordModalVisible = true;
+    }
+
+    private void ClosePasswordModal()
+    {
+        isPasswordModalVisible = false;
+    }
+
+    private async Task HandlePasswordSave()
+    {
+        passwordError = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(newPasswordValue) || string.IsNullOrWhiteSpace(confirmPasswordValue))
+        {
+            passwordError = "Udfyld begge felter.";
+            return;
+        }
+
+        if (newPasswordValue != confirmPasswordValue)
+        {
+            passwordError = "Passwords er ikke ens.";
+            return;
+        }
+
+        if (!IsValidPassword(newPasswordValue))
+        {
+            passwordError = "Mindst 8 tegn, et stort bogstav, et tal og et specialtegn.";
+            return;
+        }
+
+        isProcessingPassword = true;
+
+        try
+        {
+            var user = await UserService.GetByIdAsync(passwordUserId);
+            if (user == null)
+            {
+                passwordError = "Brugeren blev ikke fundet.";
+                return;
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPasswordValue);
+
+            // Admin saetter et konkret password, saa brugeren skal ikke tvinges
+            // gennem nulstillingsfloewet ved naeste login.
+            user.MustResetPassword = false;
+
+            await UserService.UpdateAsync(user);
+
+            statusMessage = $"Password blev opdateret for {user.Username}.";
+            isPasswordModalVisible = false;
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            passwordError = $"Kunne ikke opdatere password: {ex.Message}";
+        }
+        finally
+        {
+            isProcessingPassword = false;
+        }
+    }
+
+    private async Task DeleteUser(User user)
+    {
+        statusMessage = string.Empty;
+        errorMessage = string.Empty;
+
+        // Ekstra sikkerhed: en admin maa ikke slette sin egen konto.
+        if (user.Id == currentUserId)
+        {
+            errorMessage = "Du kan ikke slette din egen bruger.";
+            confirmDeleteUserId = null;
+            return;
+        }
+
+        isProcessingDelete = true;
+
+        try
+        {
+            var deleted = await UserService.DeleteAsync(user.Id);
+            statusMessage = deleted
+                ? $"Brugeren {user.Username} blev slettet."
+                : $"Brugeren {user.Username} blev ikke fundet.";
+
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke slette brugeren: {ex.Message}";
+        }
+        finally
+        {
+            isProcessingDelete = false;
+            confirmDeleteUserId = null;
+        }
+    }
+
+    private static bool IsValidPassword(string password)
+    {
+        return password.Length >= 8
+            && password.Any(char.IsUpper)
+            && password.Any(char.IsDigit)
+            && password.Any(c => !char.IsLetterOrDigit(c));
     }
 
     // OPDATERET (FASE 3): Gemmer nu til databasen

@@ -53,6 +53,11 @@ namespace CiOHjemmeside.Data.Services
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS isactive BOOLEAN NOT NULL DEFAULT true;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS mustresetpassword BOOLEAN NOT NULL DEFAULT false;
 
+                -- Knytter et salg til en konkret koncert, saa vi kan se HVOR merch er solgt.
+                -- Nullable, fordi aeldre salg ikke har en lokation (vises som 'Ukendt').
+                ALTER TABLE sales ADD COLUMN IF NOT EXISTS concertid INT NULL REFERENCES concerts(id) ON DELETE SET NULL;
+                CREATE INDEX IF NOT EXISTS idx_sales_concertid ON sales (concertid);
+
                 DO $$
                 BEGIN
                     IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendarevents_eventtype_check') THEN
