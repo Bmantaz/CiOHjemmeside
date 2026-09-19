@@ -9,7 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 // FJERNET: builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
+    {
+        // Hævet fra standard 32 KB, så admin kan uploade EPK-filer (PDF/billeder) via SignalR.
+        options.MaximumReceiveMessageSize = 12 * 1024 * 1024;
+    });
 
 // --- START: Auth-konfiguration (Fase 3 - Forenklet) ---
 
@@ -41,6 +46,7 @@ builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<IEpkAccessService, EpkAccessService>();
+builder.Services.AddScoped<IEpkAssetService, EpkAssetService>();
 // --- SLUT: Konfiguration af Data-lag (Fase 1) ---
 
 
@@ -51,6 +57,10 @@ using (var scope = app.Services.CreateScope())
 {
     var connectionFactory = scope.ServiceProvider.GetRequiredService<IDbConnectionFactory>();
     await DatabaseInitializer.InitializeAsync(connectionFactory);
+
+    var assetService = scope.ServiceProvider.GetRequiredService<IEpkAssetService>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("EpkAssetSeeder");
+    await EpkAssetSeeder.SeedAsync(assetService, app.Environment.WebRootPath, logger);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -69,5 +79,22 @@ app.UseAntiforgery();
 // KORREKT KODE: Denne linje SKAL være her for at mappe SignalR-endpoints.
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// Serverer EPK-filer og thumbnails direkte fra databasen.
+app.MapGet("/epk-file/{id:int}", async (int id, IEpkAssetService assetService) =>
+{
+    var file = await assetService.GetFileAsync(id);
+    return file is null
+        ? Results.NotFound()
+        : Results.File(file.Content, file.ContentType, file.FileName);
+});
+
+app.MapGet("/epk-thumb/{id:int}", async (int id, IEpkAssetService assetService) =>
+{
+    var thumb = await assetService.GetThumbnailAsync(id);
+    return thumb is null
+        ? Results.NotFound()
+        : Results.File(thumb.Content, thumb.ContentType);
+});
 
 app.Run();

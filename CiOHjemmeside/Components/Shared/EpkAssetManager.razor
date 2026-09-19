@@ -1,0 +1,315 @@
+@using CiOHjemmeside.Data.Models
+@using CiOHjemmeside.Data.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject IEpkAssetService EpkAssetService
+
+@* 
+    Genbrugelig EPK-sektion. Viser altid indholdet for besøgende,
+    og tilføjer opret/rediger/slet-kontroller når brugeren er Admin.
+*@
+
+@if (assets is null)
+{
+    <p class="epk-lead">Indlæser...</p>
+}
+else if (!assets.Any())
+{
+    <p class="epk-lead">Intet indhold endnu.</p>
+}
+else if (Gallery)
+{
+    <div class="epk-gallery-grid">
+        @foreach (var asset in assets)
+        {
+            <section class="epk-section">
+                <div class="epk-asset-row">
+                    @if (asset.HasThumbnail)
+                    {
+                        <img class="epk-mini-thumb" src="@($"/epk-thumb/{asset.Id}")" alt="@asset.Title"
+                             width="110" height="110" style="width:110px;height:110px;" />
+                    }
+                    <div>
+                        <h2>@asset.Title</h2>
+                        <div class="epk-actions">
+                            <a class="epk-link-button" href="@FileUrl(asset)" target="_blank" rel="noopener noreferrer">Open</a>
+                            <a class="epk-link-button" href="@FileUrl(asset)" download="@asset.FileName">Download</a>
+                        </div>
+                    </div>
+                </div>
+                <AuthorizeView Roles="Admin" Context="adminCtx">
+                    @AdminRow(asset)
+                </AuthorizeView>
+            </section>
+        }
+    </div>
+}
+else
+{
+    @foreach (var asset in assets)
+    {
+        <section class="epk-section">
+            <h2>@asset.Title</h2>
+            <div class="epk-actions">
+                <a class="epk-link-button" href="@FileUrl(asset)" target="_blank" rel="noopener noreferrer">Open</a>
+                <a class="epk-link-button" href="@FileUrl(asset)" download="@asset.FileName">Download</a>
+            </div>
+            <AuthorizeView Roles="Admin" Context="adminCtx">
+                @AdminRow(asset)
+            </AuthorizeView>
+        </section>
+    }
+}
+
+<AuthorizeView Roles="Admin" Context="uploadCtx">
+    <section class="epk-section epk-admin-box">
+        <h2>Tilføj nyt indhold</h2>
+
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <p class="epk-lead">@message</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <p class="epk-error">@error</p>
+        }
+
+        <div class="epk-actions">
+            <input class="epk-code-input" @bind="newTitle" placeholder="Titel" />
+            <InputFile OnChange="OnNewFileSelected" accept="@AcceptFilter" />
+            <button class="epk-link-button" disabled="@(isBusy || newFile is null)" @onclick="UploadNew">
+                @(isBusy ? "Uploader..." : "Upload")
+            </button>
+        </div>
+        @if (newFile is not null)
+        {
+            <p class="epk-lead">Valgt: @newFile.Name (@FormatSize(newFile.Size))</p>
+        }
+    </section>
+</AuthorizeView>
+
+@code {
+    /// <summary>
+    /// Admin-kontroller pr. element: omdøb, udskift fil, ændr rækkefølge og slet.
+    /// Vises kun inde i en AuthorizeView med rollen Admin.
+    /// </summary>
+    private RenderFragment AdminRow(EpkAsset asset) => __builder =>
+    {
+        <div class="epk-admin-row">
+            @if (editingId == asset.Id)
+            {
+                <div class="epk-actions">
+                    <input class="epk-code-input" @bind="editingTitle" placeholder="Titel" />
+                    <button class="epk-link-button" @onclick="() => SaveTitle(asset)">Gem</button>
+                    <button class="epk-link-button" @onclick="CancelEdit">Annuller</button>
+                </div>
+            }
+            else if (confirmDeleteId == asset.Id)
+            {
+                <div class="epk-actions">
+                    <span class="epk-error">Slet "@asset.Title"?</span>
+                    <button class="epk-link-button" @onclick="() => Delete(asset)">Ja, slet</button>
+                    <button class="epk-link-button" @onclick="() => confirmDeleteId = null">Fortryd</button>
+                </div>
+            }
+            else
+            {
+                <div class="epk-actions">
+                    <button class="epk-link-button" @onclick="() => StartEdit(asset)">Omdøb</button>
+                    <button class="epk-link-button" disabled="@isBusy" @onclick="() => Move(asset, -1)">↑</button>
+                    <button class="epk-link-button" disabled="@isBusy" @onclick="() => Move(asset, 1)">↓</button>
+                    <button class="epk-link-button" @onclick="() => confirmDeleteId = asset.Id">Slet</button>
+                    <label class="epk-link-button">
+                        Udskift fil
+                        <InputFile OnChange="@(e => ReplaceFile(asset, e))" accept="@AcceptFilter" style="display:none" />
+                    </label>
+                </div>
+                <p class="epk-lead epk-asset-meta">@asset.FileName — @FormatSize(asset.FileSize)</p>
+            }
+        </div>
+    };
+
+    [Parameter, EditorRequired] public string Category { get; set; } = string.Empty;
+
+    /// <summary>Vis som billedgalleri med thumbnails i stedet for en simpel liste.</summary>
+    [Parameter] public bool Gallery { get; set; }
+
+    private const long MaxFileSize = 10 * 1024 * 1024;
+
+    private List<EpkAsset>? assets;
+    private IBrowserFile? newFile;
+    private string newTitle = string.Empty;
+    private string message = string.Empty;
+    private string error = string.Empty;
+    private bool isBusy;
+
+    private int? editingId;
+    private string editingTitle = string.Empty;
+    private int? confirmDeleteId;
+
+    private string AcceptFilter => Gallery ? "image/*" : ".pdf,image/*";
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        assets = (await EpkAssetService.GetByCategoryAsync(Category)).ToList();
+    }
+
+    private static string FileUrl(EpkAsset asset) => $"/epk-file/{asset.Id}";
+
+    private void OnNewFileSelected(InputFileChangeEventArgs e)
+    {
+        error = string.Empty;
+        message = string.Empty;
+        newFile = e.File;
+
+        if (string.IsNullOrWhiteSpace(newTitle))
+        {
+            newTitle = Path.GetFileNameWithoutExtension(e.File.Name);
+        }
+    }
+
+    private async Task UploadNew()
+    {
+        if (newFile is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newTitle))
+        {
+            error = "Angiv en titel.";
+            return;
+        }
+
+        isBusy = true;
+        error = string.Empty;
+        message = string.Empty;
+
+        try
+        {
+            var content = await ReadFileAsync(newFile);
+            await EpkAssetService.AddAsync(Category, newTitle.Trim(), newFile.Name, ResolveContentType(newFile), content);
+
+            newFile = null;
+            newTitle = string.Empty;
+            message = "Filen blev uploadet.";
+            await ReloadAsync();
+        }
+        catch (IOException)
+        {
+            error = $"Filen er for stor. Maks {FormatSize(MaxFileSize)}.";
+        }
+        catch (Exception ex)
+        {
+            error = $"Upload fejlede: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task ReplaceFile(EpkAsset asset, InputFileChangeEventArgs e)
+    {
+        isBusy = true;
+        error = string.Empty;
+        message = string.Empty;
+
+        try
+        {
+            var content = await ReadFileAsync(e.File);
+            await EpkAssetService.ReplaceFileAsync(asset.Id, e.File.Name, ResolveContentType(e.File), content);
+
+            message = $"\"{asset.Title}\" blev opdateret.";
+            await ReloadAsync();
+        }
+        catch (IOException)
+        {
+            error = $"Filen er for stor. Maks {FormatSize(MaxFileSize)}.";
+        }
+        catch (Exception ex)
+        {
+            error = $"Opdatering fejlede: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void StartEdit(EpkAsset asset)
+    {
+        editingId = asset.Id;
+        editingTitle = asset.Title;
+        confirmDeleteId = null;
+    }
+
+    private void CancelEdit()
+    {
+        editingId = null;
+        editingTitle = string.Empty;
+    }
+
+    private async Task SaveTitle(EpkAsset asset)
+    {
+        if (string.IsNullOrWhiteSpace(editingTitle))
+        {
+            error = "Titel må ikke være tom.";
+            return;
+        }
+
+        await EpkAssetService.UpdateTitleAsync(asset.Id, editingTitle.Trim());
+        editingId = null;
+        message = "Titlen blev gemt.";
+        await ReloadAsync();
+    }
+
+    private async Task Move(EpkAsset asset, int direction)
+    {
+        await EpkAssetService.MoveAsync(asset.Id, direction);
+        await ReloadAsync();
+    }
+
+    private async Task Delete(EpkAsset asset)
+    {
+        await EpkAssetService.DeleteAsync(asset.Id);
+        confirmDeleteId = null;
+        message = $"\"{asset.Title}\" blev slettet.";
+        await ReloadAsync();
+    }
+
+    private static async Task<byte[]> ReadFileAsync(IBrowserFile file)
+    {
+        using var stream = file.OpenReadStream(MaxFileSize);
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        return buffer.ToArray();
+    }
+
+    private static string ResolveContentType(IBrowserFile file)
+    {
+        if (!string.IsNullOrWhiteSpace(file.ContentType))
+        {
+            return file.ContentType;
+        }
+
+        return Path.GetExtension(file.Name).ToLowerInvariant() switch
+        {
+            ".pdf" => "application/pdf",
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes >= 1024 * 1024)
+        {
+            return $"{bytes / (1024.0 * 1024.0):0.#} MB";
+        }
+
+        return $"{bytes / 1024.0:0.#} KB";
+    }
+}

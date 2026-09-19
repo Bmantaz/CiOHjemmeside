@@ -33,6 +33,20 @@ namespace CiOHjemmeside.Data.Services
                 CREATE INDEX IF NOT EXISTS idx_sales_soldat ON sales (soldat);
                 CREATE INDEX IF NOT EXISTS idx_saleitems_saleid ON saleitems (saleid);
 
+                CREATE TABLE IF NOT EXISTS epkassets (
+                    id SERIAL PRIMARY KEY,
+                    category TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    filename TEXT NOT NULL,
+                    contenttype TEXT NOT NULL,
+                    filesize BIGINT NOT NULL,
+                    content BYTEA NOT NULL,
+                    thumbnail BYTEA,
+                    sortorder INT NOT NULL DEFAULT 0,
+                    uploadedat TIMESTAMPTZ NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_epkassets_category ON epkassets (category, sortorder);
+
                 ALTER TABLE concerts ADD COLUMN IF NOT EXISTS otherbands TEXT;
                 ALTER TABLE concerts ADD COLUMN IF NOT EXISTS facebookeventlink TEXT;
 

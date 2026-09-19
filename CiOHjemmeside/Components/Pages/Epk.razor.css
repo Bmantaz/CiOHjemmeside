@@ -169,3 +169,43 @@
 .epk-code-input::placeholder {
     color: #888;
 }
+
+/* --- Admin-styring af EPK-indhold --- */
+
+.epk-admin-box {
+    border-color: #555;
+    border-style: dashed;
+}
+
+.epk-admin-row {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #333;
+}
+
+.epk-asset-meta {
+    margin: 0.5rem 0 0;
+    font-size: 0.8rem;
+    color: #777;
+}
+
+.epk-asset-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.epk-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+    .epk-gallery-grid .epk-section {
+        margin-bottom: 0;
+    }
+
+.epk-link-button label,
+label.epk-link-button {
+    cursor: pointer;
+}
