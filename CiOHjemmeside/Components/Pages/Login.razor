@@ -3,7 +3,9 @@
 @rendermode InteractiveServer
 @attribute [AllowAnonymous]
 
+@using CiOHjemmeside.Data.Auth
 @inject AuthenticationStateProvider AuthProvider
+@inject IAuthService AuthService
 @inject NavigationManager NavManager
 @inject IUserService UserService
 
@@ -62,8 +64,7 @@
 
         try
         {
-            var authProvider = (CustomAuthStateProvider)AuthProvider;
-            bool success = await authProvider.LoginAsync(username, password);
+            bool success = await AuthService.LoginAsync(username, password);
 
             if (!success)
             {

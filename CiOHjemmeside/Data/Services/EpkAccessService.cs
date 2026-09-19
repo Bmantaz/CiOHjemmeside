@@ -9,11 +9,13 @@ namespace CiOHjemmeside.Data.Services
 
         private readonly ProtectedSessionStorage _sessionStorage;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<EpkAccessService> _logger;
 
-        public EpkAccessService(ProtectedSessionStorage sessionStorage, IConfiguration configuration)
+        public EpkAccessService(ProtectedSessionStorage sessionStorage, IConfiguration configuration, ILogger<EpkAccessService> logger)
         {
             _sessionStorage = sessionStorage;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task<bool> IsUnlockedAsync()
@@ -23,8 +25,9 @@ namespace CiOHjemmeside.Data.Services
                 var result = await _sessionStorage.GetAsync<bool>(EpkAccessStorageKey);
                 return result.Success && result.Value;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Kunne ikke læse EPK-adgangsstatus fra session storage.");
                 return false;
             }
         }
@@ -44,8 +47,9 @@ namespace CiOHjemmeside.Data.Services
                 await _sessionStorage.SetAsync(EpkAccessStorageKey, true);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Kunne ikke gemme EPK-adgangsstatus i session storage.");
                 return false;
             }
         }

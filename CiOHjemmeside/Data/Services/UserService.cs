@@ -16,8 +16,9 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            // Rettet til lowercase
-            var sql = @"SELECT * FROM users ORDER BY username ASC";
+            // Undlader bevidst passwordhash her, da denne metode bruges til listevisning.
+            // Brug GetByIdAsync når den fulde bruger (inkl. hash) er nødvendig, f.eks. ved redigering.
+            var sql = @"SELECT id, username, role, mustresetpassword FROM users ORDER BY username ASC";
             return await connection.QueryAsync<User>(sql);
         }
 
@@ -25,8 +26,7 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            // Rettet til lowercase
-            var sql = @"SELECT * FROM users WHERE id = @Id";
+            var sql = @"SELECT id, username, passwordhash, role, mustresetpassword FROM users WHERE id = @Id";
             return await connection.QuerySingleOrDefaultAsync<User>(sql, new { Id = id });
         }
 
@@ -34,8 +34,7 @@ namespace CiOHjemmeside.Data.Services
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            // Rettet til lowercase
-            var sql = @"SELECT * FROM users WHERE username = @Username";
+            var sql = @"SELECT id, username, passwordhash, role, mustresetpassword FROM users WHERE username = @Username";
             return await connection.QuerySingleOrDefaultAsync<User>(sql, new { Username = username });
         }
 

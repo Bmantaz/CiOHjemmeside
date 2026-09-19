@@ -1,5 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@using CiOHjemmeside.Data.Auth
 @inject AuthenticationStateProvider AuthProvider
+@inject IAuthService AuthService
 @inject NavigationManager NavManager
 
 <AuthorizeView>
@@ -51,8 +53,7 @@
 @code {
     private async Task HandleLogout()
     {
-        var authProvider = (CustomAuthStateProvider)AuthProvider;
-        await authProvider.LogoutAsync();
+        await AuthService.LogoutAsync();
 
         NavManager.NavigateTo("/login", forceLoad: true);
     }

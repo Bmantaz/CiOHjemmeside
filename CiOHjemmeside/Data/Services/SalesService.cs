@@ -1,16 +1,17 @@
 using CiOHjemmeside.Data.Models;
 using Dapper;
-using System.Data;
 
 namespace CiOHjemmeside.Data.Services
 {
     public class SalesService : ISalesService
     {
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ILogger<SalesService> _logger;
 
-        public SalesService(IDbConnectionFactory connectionFactory)
+        public SalesService(IDbConnectionFactory connectionFactory, ILogger<SalesService> logger)
         {
             _connectionFactory = connectionFactory;
+            _logger = logger;
         }
 
         public async Task<List<ProductGroup>> GetAllProductGroupsWithVariantsAsync()
@@ -56,7 +57,6 @@ namespace CiOHjemmeside.Data.Services
             if (!normalizedItems.Any()) return;
 
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
             using var transaction = connection.BeginTransaction();
 
             try
@@ -89,7 +89,30 @@ namespace CiOHjemmeside.Data.Services
                         },
                         transaction);
 
-                    // 3. Opdater det faktiske lager i databasen
+                    // 3. Lås varianten og verificér at der er nok på lager, før vi trækker fra det.
+                    // FOR UPDATE forhindrer to samtidige salg i at overtrække samme variant.
+                    var currentStock = await connection.QuerySingleOrDefaultAsync<int?>(
+                        @"SELECT stockquantity FROM productvariants 
+                          WHERE variantname = @VariantName 
+                          AND productgroupid = (SELECT id FROM productgroups WHERE groupname = @ProductGroupName LIMIT 1)
+                          FOR UPDATE",
+                        new { item.VariantName, item.ProductGroupName },
+                        transaction);
+
+                    if (currentStock == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Varianten '{item.VariantName}' under '{item.ProductGroupName}' findes ikke på lager.");
+                    }
+
+                    if (currentStock.Value < item.Quantity)
+                    {
+                        throw new InvalidOperationException(
+                            $"Ikke nok på lager af '{item.VariantName}' ({item.ProductGroupName}). " +
+                            $"Ønsket: {item.Quantity}, på lager: {currentStock.Value}.");
+                    }
+
+                    // 4. Opdater det faktiske lager i databasen
                     await connection.ExecuteAsync(
                         @"UPDATE productvariants 
                           SET stockquantity = stockquantity - @Quantity 
@@ -101,20 +124,27 @@ namespace CiOHjemmeside.Data.Services
 
                 transaction.Commit();
             }
-            catch
+            catch (Exception ex)
             {
                 transaction.Rollback();
+                _logger.LogWarning(ex, "Salg kunne ikke gennemføres for bruger {SoldByUserId}. Transaktionen er rullet tilbage.", soldByUserId);
                 throw;
             }
         }
 
-        public async Task<SalesStatisticsResult> GetStatisticsForDateAsync(DateTime date)
+        public Task<SalesStatisticsResult> GetStatisticsForDateAsync(DateTime date)
+        {
+            return GetStatisticsForRangeInternalAsync(date.Date, date.Date, date.Date.AddDays(1));
+        }
+
+        public Task<SalesStatisticsResult> GetStatisticsForRangeAsync(DateTime from, DateTime to)
+        {
+            return GetStatisticsForRangeInternalAsync(from.Date, from.Date, to.Date.AddDays(1));
+        }
+
+        private async Task<SalesStatisticsResult> GetStatisticsForRangeInternalAsync(DateTime resultDate, DateTime rangeStart, DateTime rangeEndExclusive)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
-            await EnsureSchemaAsync(connection);
-
-            var dayStart = date.Date;
-            var dayEnd = dayStart.AddDays(1);
 
             var rows = (await connection.QueryAsync<SalesStatisticRow>(
                 @"SELECT
@@ -124,10 +154,10 @@ namespace CiOHjemmeside.Data.Services
                       COALESCE(SUM(si.lineamount), 0)::numeric AS Revenue
                   FROM sales s
                   INNER JOIN saleitems si ON si.saleid = s.id
-                  WHERE s.soldat >= @DayStart AND s.soldat < @DayEnd
+                  WHERE s.soldat >= @RangeStart AND s.soldat < @RangeEnd
                   GROUP BY si.productgroupname, si.variantname
                   ORDER BY si.productgroupname, si.variantname",
-                new { DayStart = dayStart, DayEnd = dayEnd })).ToList();
+                new { RangeStart = rangeStart, RangeEnd = rangeEndExclusive })).ToList();
 
             var summary = await connection.QuerySingleAsync<SalesSummaryRow>(
                 @"SELECT
@@ -135,40 +165,38 @@ namespace CiOHjemmeside.Data.Services
                       COALESCE(SUM(si.lineamount), 0)::numeric AS TotalRevenue
                   FROM sales s
                   INNER JOIN saleitems si ON si.saleid = s.id
-                  WHERE s.soldat >= @DayStart AND s.soldat < @DayEnd",
-                new { DayStart = dayStart, DayEnd = dayEnd });
+                  WHERE s.soldat >= @RangeStart AND s.soldat < @RangeEnd",
+                new { RangeStart = rangeStart, RangeEnd = rangeEndExclusive });
 
             return new SalesStatisticsResult
             {
-                Date = dayStart,
+                Date = resultDate,
                 Rows = rows,
                 TotalItemsSold = summary.TotalItemsSold,
                 TotalRevenue = summary.TotalRevenue
             };
         }
 
-        private static Task EnsureSchemaAsync(IDbConnection connection)
+        public async Task<List<DailySalesSummary>> GetDailySalesSummaryAsync(DateTime from, DateTime to)
         {
-            const string sql = @"
-                CREATE TABLE IF NOT EXISTS sales (
-                    id SERIAL PRIMARY KEY,
-                    soldat TIMESTAMPTZ NOT NULL,
-                    soldbyuserid INT NOT NULL,
-                    totalamount NUMERIC(10,2) NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS saleitems (
-                    id SERIAL PRIMARY KEY,
-                    saleid INT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-                    productgroupname TEXT NOT NULL,
-                    variantname TEXT NOT NULL,
-                    quantity INT NOT NULL,
-                    unitprice NUMERIC(10,2) NOT NULL,
-                    lineamount NUMERIC(10,2) NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS idx_sales_soldat ON sales (soldat);
-                CREATE INDEX IF NOT EXISTS idx_saleitems_saleid ON saleitems (saleid);
-            ";
-            return connection.ExecuteAsync(sql);
+            using var connection = await _connectionFactory.CreateConnectionAsync();
+
+            var rangeStart = from.Date;
+            var rangeEnd = to.Date.AddDays(1);
+
+            var rows = (await connection.QueryAsync<DailySalesSummary>(
+                @"SELECT
+                      date_trunc('day', s.soldat)::date AS Date,
+                      COALESCE(SUM(si.quantity), 0)::int AS TotalItemsSold,
+                      COALESCE(SUM(si.lineamount), 0)::numeric AS TotalRevenue
+                  FROM sales s
+                  INNER JOIN saleitems si ON si.saleid = s.id
+                  WHERE s.soldat >= @RangeStart AND s.soldat < @RangeEnd
+                  GROUP BY date_trunc('day', s.soldat)
+                  ORDER BY date_trunc('day', s.soldat)",
+                new { RangeStart = rangeStart, RangeEnd = rangeEnd })).ToList();
+
+            return rows;
         }
 
         private class SalesSummaryRow

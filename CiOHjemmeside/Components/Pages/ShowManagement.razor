@@ -1,6 +1,7 @@
 @page "/shows-admin"
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 
 @inject IConcertService ConcertService
 @inject NavigationManager NavManager
@@ -117,9 +118,6 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState> AuthState { get; set; } = default!;
-
     private List<Concert> upcomingShows = new();
     private bool isLoading = true;
     private bool isEditing;
@@ -130,21 +128,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthState;
-        var user = authState.User;
-
-        if (user.Identity?.IsAuthenticated != true)
-        {
-            NavManager.NavigateTo("/login", forceLoad: true);
-            return;
-        }
-
-        if (!user.IsInRole("Admin"))
-        {
-            var target = user.IsInRole("Sales") ? "/sales" : "/dashboard";
-            NavManager.NavigateTo(target, forceLoad: true);
-        }
-
         await LoadShowsAsync();
     }
 

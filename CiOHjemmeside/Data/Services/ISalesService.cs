@@ -7,5 +7,7 @@ namespace CiOHjemmeside.Data.Services
         Task<List<ProductGroup>> GetAllProductGroupsWithVariantsAsync();
         Task RecordSaleAsync(int soldByUserId, IEnumerable<SaleItemInput> items, DateTime? soldAtUtc = null);
         Task<SalesStatisticsResult> GetStatisticsForDateAsync(DateTime date);
+        Task<SalesStatisticsResult> GetStatisticsForRangeAsync(DateTime from, DateTime to);
+        Task<List<DailySalesSummary>> GetDailySalesSummaryAsync(DateTime from, DateTime to);
     }
 }

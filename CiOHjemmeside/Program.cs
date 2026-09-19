@@ -23,6 +23,7 @@ builder.Services.AddCascadingAuthenticationState();
 
 // Registrer vores custom provider. Scoped er VIGTIGT.
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+builder.Services.AddScoped<IAuthService>(sp => (CustomAuthStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 
 // --- SLUT: Auth-konfiguration ---
 
@@ -44,6 +45,13 @@ builder.Services.AddScoped<IEpkAccessService, EpkAccessService>();
 
 
 var app = builder.Build();
+
+// Kør al schema-DDL én gang ved opstart, i stedet for på hvert enkelt kald
+using (var scope = app.Services.CreateScope())
+{
+    var connectionFactory = scope.ServiceProvider.GetRequiredService<IDbConnectionFactory>();
+    await DatabaseInitializer.InitializeAsync(connectionFactory);
+}
 
 if (!app.Environment.IsDevelopment())
 {

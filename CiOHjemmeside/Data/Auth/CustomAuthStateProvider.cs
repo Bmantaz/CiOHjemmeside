@@ -5,17 +5,19 @@ using System.Security.Claims;
 
 namespace CiOHjemmeside.Data.Auth
 {
-    public class CustomAuthStateProvider : AuthenticationStateProvider
+    public class CustomAuthStateProvider : AuthenticationStateProvider, IAuthService
     {
         private readonly IUserService _userService;
         private readonly ProtectedSessionStorage _sessionStorage;
+        private readonly ILogger<CustomAuthStateProvider> _logger;
         private ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
         private const string AuthStorageKey = "CiO-AuthState";
 
-        public CustomAuthStateProvider(IUserService userService, ProtectedSessionStorage sessionStorage)
+        public CustomAuthStateProvider(IUserService userService, ProtectedSessionStorage sessionStorage, ILogger<CustomAuthStateProvider> logger)
         {
             _userService = userService;
             _sessionStorage = sessionStorage;
+            _logger = logger;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -38,9 +40,11 @@ namespace CiOHjemmeside.Data.Auth
                     _currentUser = new ClaimsPrincipal(identity);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Hvis der er fejl ved at læse fra storage, fortsæt med tom bruger
+                // Hvis der er fejl ved at læse fra storage, fortsæt med tom bruger,
+                // men log det så et vedvarende problem ikke forbliver usynligt.
+                _logger.LogWarning(ex, "Kunne ikke læse auth state fra session storage.");
             }
 
             return new AuthenticationState(_currentUser);

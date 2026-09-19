@@ -1,6 +1,7 @@
 @page "/sales-statistics"
 @layout Layout.InternalLayout
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 
 @inject ISalesService SalesService
 @inject NavigationManager NavManager
@@ -9,19 +10,93 @@
 
 <h1>Salg Statistik</h1>
 
-<div class="d-flex gap-2 align-items-end mb-3">
-    <div>
-        <label class="form-label">Dato</label>
-        <InputDate class="form-control" @bind-Value="selectedDate" />
-    </div>
-    <button class="btn btn-primary" @onclick="LoadStatistics" disabled="@isLoading">
-        @(isLoading ? "Indlæser..." : "Hent statistik")
-    </button>
+<div class="d-flex gap-2 align-items-center mb-4">
+    <button class="btn btn-outline-secondary" @onclick="GoToPreviousMonth" disabled="@isMonthLoading">&laquo; Forrige</button>
+    <h4 class="mb-0">@currentMonth.ToString("MMMM yyyy")</h4>
+    <button class="btn btn-outline-secondary" @onclick="GoToNextMonth" disabled="@isMonthLoading">Næste &raquo;</button>
 </div>
+
+@if (!string.IsNullOrEmpty(monthErrorMessage))
+{
+    <p class="text-danger">@monthErrorMessage</p>
+}
+else if (isMonthLoading)
+{
+    <p>Indlæser måned...</p>
+}
+else
+{
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card bg-dark text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Måneds overblik</h5>
+                    <p class="mb-1"><strong>Antal salgsdage:</strong> @dailySummaries.Count</p>
+                    <p class="mb-1"><strong>Total antal solgt:</strong> @monthTotalItemsSold</p>
+                    <p class="mb-0"><strong>Total omsætning:</strong> @monthTotalRevenue.ToString("N2") kr.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-dark text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Solgt denne måned</h5>
+                    @if (!monthProductRecap.Any())
+                    {
+                        <p class="mb-0">Ingen salg registreret i denne måned.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var item in monthProductRecap)
+                            {
+                                <li class="d-flex justify-content-between">
+                                    <span>@item.ProductGroupName @(string.IsNullOrEmpty(item.VariantName) ? "" : $"({item.VariantName})")</span>
+                                    <span>@item.TotalSold stk.</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-dark text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Salgsdage</h5>
+                    @if (!dailySummaries.Any())
+                    {
+                        <p class="mb-0">Ingen salg registreret i denne måned.</p>
+                    }
+                    else
+                    {
+                        <div class="list-group" style="max-height: 260px; overflow-y: auto;">
+                            @foreach (var day in dailySummaries)
+                            {
+                                <button type="button"
+                                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(selectedDate == day.Date ? "active" : "")"
+                                        @onclick="() => LoadStatisticsForDate(day.Date)">
+                                    <span>@day.Date.ToString("dd-MM-yyyy")</span>
+                                    <span class="badge bg-secondary rounded-pill">@day.TotalRevenue.ToString("N0") kr.</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
     <p class="text-danger">@errorMessage</p>
+}
+else if (isLoading)
+{
+    <p>Indlæser dag...</p>
 }
 else if (statistics != null)
 {
@@ -63,43 +138,77 @@ else if (statistics != null)
 }
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState> AuthState { get; set; } = default!;
-
-    private DateTime selectedDate = DateTime.Today;
+    private DateTime currentMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? selectedDate;
+    private List<DailySalesSummary> dailySummaries = new();
+    private List<SalesStatisticRow> monthProductRecap = new();
+    private int monthTotalItemsSold;
+    private decimal monthTotalRevenue;
     private SalesStatisticsResult? statistics;
     private bool isLoading = false;
+    private bool isMonthLoading = false;
     private string errorMessage = string.Empty;
+    private string monthErrorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthState;
-        var user = authState.User;
-
-        if (user.Identity?.IsAuthenticated != true)
-        {
-            NavManager.NavigateTo("/login", forceLoad: true);
-            return;
-        }
-
-        if (!user.IsInRole("Admin"))
-        {
-            var target = user.IsInRole("Sales") ? "/sales" : "/dashboard";
-            NavManager.NavigateTo(target, forceLoad: true);
-            return;
-        }
-
-        await LoadStatistics();
+        await LoadMonthAsync();
     }
 
-    private async Task LoadStatistics()
+    private async Task LoadMonthAsync()
     {
+        isMonthLoading = true;
+        monthErrorMessage = string.Empty;
+        selectedDate = null;
+        statistics = null;
+
+        try
+        {
+            var from = currentMonth;
+            var to = currentMonth.AddMonths(1).AddDays(-1);
+
+            dailySummaries = await SalesService.GetDailySalesSummaryAsync(from, to);
+
+            var monthStats = await SalesService.GetStatisticsForRangeAsync(from, to);
+            monthProductRecap = monthStats.Rows;
+            monthTotalItemsSold = monthStats.TotalItemsSold;
+            monthTotalRevenue = monthStats.TotalRevenue;
+        }
+        catch (Exception ex)
+        {
+            monthErrorMessage = $"Kunne ikke hente måneds-data: {ex.Message}";
+            dailySummaries = new();
+            monthProductRecap = new();
+            monthTotalItemsSold = 0;
+            monthTotalRevenue = 0;
+        }
+        finally
+        {
+            isMonthLoading = false;
+        }
+    }
+
+    private async Task GoToPreviousMonth()
+    {
+        currentMonth = currentMonth.AddMonths(-1);
+        await LoadMonthAsync();
+    }
+
+    private async Task GoToNextMonth()
+    {
+        currentMonth = currentMonth.AddMonths(1);
+        await LoadMonthAsync();
+    }
+
+    private async Task LoadStatisticsForDate(DateTime date)
+    {
+        selectedDate = date;
         isLoading = true;
         errorMessage = string.Empty;
 
         try
         {
-            statistics = await SalesService.GetStatisticsForDateAsync(selectedDate);
+            statistics = await SalesService.GetStatisticsForDateAsync(date);
         }
         catch (Exception ex)
         {
