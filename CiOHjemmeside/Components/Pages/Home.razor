@@ -10,7 +10,15 @@
     </section>
 
     <section id="shows" class="content-section">
-        <h2>Upcoming shows</h2>
+        <div class="shows-head">
+            <h2 class="shows-title">Upcoming shows</h2>
+            <p class="shows-tagline">
+                Same stage<br />
+                Different cities<br />
+                A louder tomorrow
+            </p>
+        </div>
+        <div class="shows-rule"><span class="shows-rule-accent"></span></div>
 
         @if (isLoadingConcerts)
         {
@@ -22,50 +30,56 @@
         }
         else
         {
-            <ul class="concert-list">
-                @foreach (var concert in upcomingConcerts)
-                {
-                    <li class="concert-item">
-                        <div class="concert-date">
-                            <span class="concert-day">@concert.EventDate.ToString("dd")</span>
-                            <span class="concert-month">@concert.EventDate.ToString("MMM").ToUpper()</span>
-                            <span class="concert-year">@concert.EventDate.Year</span>
-                        </div>
+            <div class="shows-frame">
+                <div class="show-row show-row-head">
+                    <span>Date</span>
+                    <span>Venue</span>
+                    <span>City / Country</span>
+                    <span>With</span>
+                    <span>Tickets</span>
+                    <span>Event</span>
+                </div>
 
-                        <div class="concert-info">
-                            <span class="concert-venue">@concert.VenueName</span>
-                            @if (FormatLocation(concert) is { Length: > 0 } location)
-                            {
-                                <span class="concert-location">@location</span>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(concert.OtherBands))
-                            {
-                                <span class="concert-with">With @concert.OtherBands</span>
-                            }
-                        </div>
+                <ul class="shows-list">
+                    @foreach (var concert in upcomingConcerts)
+                    {
+                        <li class="show-row">
+                            <span class="show-date">@concert.EventDate.ToString("dd MMM yyyy").ToUpper()</span>
+                            <span class="show-venue">@concert.VenueName</span>
+                            <span class="show-location @EmptyClass(FormatLocation(concert))">@OrDash(FormatLocation(concert))</span>
+                            <span class="show-with @EmptyClass(concert.OtherBands)">@OrDash(concert.OtherBands)</span>
 
-                        <div class="concert-actions">
-                            @if (concert.IsSoldOut)
-                            {
-                                <span class="concert-tag concert-sold-out">Sold out</span>
-                            }
-                            else if (!string.IsNullOrWhiteSpace(concert.TicketLink))
-                            {
-                                <a href="@EnsureAbsoluteUrl(concert.TicketLink)" target="_blank" rel="noopener noreferrer" class="concert-tag concert-tag-link">Tickets</a>
-                            }
-                            else
-                            {
-                                <span class="concert-tag concert-soon">Soon</span>
-                            }
+                            <span class="show-cell">
+                                @if (concert.IsSoldOut)
+                                {
+                                    <span class="show-btn show-btn-soldout">Sold out</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(concert.TicketLink))
+                                {
+                                    <a href="@EnsureAbsoluteUrl(concert.TicketLink)" target="_blank" rel="noopener noreferrer" class="show-btn show-btn-tickets">Get tickets</a>
+                                }
+                                else
+                                {
+                                    <span class="show-btn show-btn-soon">Soon</span>
+                                }
+                            </span>
 
-                            @if (!string.IsNullOrWhiteSpace(concert.FacebookEventLink))
-                            {
-                                <a href="@EnsureAbsoluteUrl(concert.FacebookEventLink)" target="_blank" rel="noopener noreferrer" class="concert-tag concert-tag-link">Event</a>
-                            }
-                        </div>
-                    </li>
-                }
-            </ul>
+                            <span class="show-cell">
+                                @if (!string.IsNullOrWhiteSpace(concert.FacebookEventLink))
+                                {
+                                    <a href="@EnsureAbsoluteUrl(concert.FacebookEventLink)" target="_blank" rel="noopener noreferrer" class="show-btn show-btn-event">
+                                        Event <span class="show-arrow">&#8599;</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="show-dash show-empty">&#8212;</span>
+                                }
+                            </span>
+                        </li>
+                    }
+                </ul>
+            </div>
         }
 
     </section>
@@ -165,6 +179,13 @@
     private static string FormatLocation(Concert concert)
         => string.Join(", ", new[] { concert.City, concert.Country }
             .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+    private static string OrDash(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+    // Pladsholder-streger giver kun mening under kolonneoverskrifterne, som skjules paa mobil.
+    private static string EmptyClass(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "show-empty" : string.Empty;
 
     private static string GetVideoThumbnailOrFallback(string videoUrl, string fallbackImageUrl)
     {
