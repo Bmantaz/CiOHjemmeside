@@ -50,6 +50,9 @@ namespace CiOHjemmeside.Data.Services
                 ALTER TABLE concerts ADD COLUMN IF NOT EXISTS otherbands TEXT;
                 ALTER TABLE concerts ADD COLUMN IF NOT EXISTS facebookeventlink TEXT;
 
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS isactive BOOLEAN NOT NULL DEFAULT true;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS mustresetpassword BOOLEAN NOT NULL DEFAULT false;
+
                 DO $$
                 BEGIN
                     IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendarevents_eventtype_check') THEN

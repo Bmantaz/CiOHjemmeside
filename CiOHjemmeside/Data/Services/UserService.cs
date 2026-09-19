@@ -32,10 +32,23 @@ namespace CiOHjemmeside.Data.Services
 
         public async Task<User?> GetByUsernameAsync(string username)
         {
-            using var connection = await _connectionFactory.CreateConnectionAsync();
+            using var connection =
+                await _connectionFactory.CreateConnectionAsync();
 
-            var sql = @"SELECT id, username, passwordhash, role, mustresetpassword FROM users WHERE username = @Username";
-            return await connection.QuerySingleOrDefaultAsync<User>(sql, new { Username = username });
+            var sql = @"
+        SELECT
+            id,
+            username,
+            passwordhash,
+            role,
+            isactive AS ""IsActive"",
+            mustresetpassword AS ""MustResetPassword""
+        FROM public.users
+        WHERE username = @Username";
+
+            return await connection.QuerySingleOrDefaultAsync<User>(
+                sql,
+                new { Username = username });
         }
 
         public async Task<int> AddAsync(User user)
