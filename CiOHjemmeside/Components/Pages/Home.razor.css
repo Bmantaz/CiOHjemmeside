@@ -70,72 +70,119 @@
 
 .concert-list {
     list-style: none;
+    margin: 1.25rem 0 0 0;
     padding: 0;
-    font-family: 'Arial Black', 'Impact', sans-serif;
-    text-transform: uppercase;
-    font-size: 1.05rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
 }
 
 .concert-item {
-    display: grid;
-    grid-template-columns: 130px minmax(120px, 1.4fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(120px, 1.6fr) 110px 100px;
+    display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.9rem 0;
-    border-bottom: 1px solid #222;
+    gap: 1.25rem;
+    padding: 1rem 1.25rem;
+    background: rgba(14, 14, 14, 0.85);
+    border: 1px solid #242424;
+    border-left: 3px solid #3d3d3d;
+    transition: border-color 0.15s ease;
 }
 
-.concert-item:first-of-type {
-    border-top: 1px solid #222;
+.concert-item:hover {
+    border-left-color: #fff;
 }
-
-.concert-header {
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    color: #666;
-    border-bottom: 1px solid #333;
-}
-
-    .concert-header span {
-        color: #666;
-    }
 
 .concert-date {
+    flex: 0 0 4.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.05;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+}
+
+.concert-day {
+    font-size: 2rem;
     color: #fff;
+}
+
+.concert-month {
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    color: #fff;
+}
+
+.concert-year {
+    font-size: 0.7rem;
+    color: #7a7a7a;
+}
+
+.concert-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
 }
 
 .concert-venue {
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    font-size: 1.15rem;
+    text-transform: uppercase;
     color: #fff;
 }
 
-.concert-city,
-.concert-country,
+.concert-location {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9a9a9a;
+}
+
 .concert-with {
-    color: #888;
-    font-size: 0.9rem;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.8rem;
+    color: #6f6f6f;
 }
 
-.concert-status,
-.concert-event {
-    text-align: right;
+.concert-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.concert-tag {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.72rem;
     font-weight: bold;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid #333;
+    white-space: nowrap;
 }
 
-.concert-ticket-link {
+.concert-tag-link {
     color: #fff;
+    border-color: #fff;
     text-decoration: none;
 }
 
-    .concert-ticket-link:hover {
-        color: #ddd;
+    .concert-tag-link:hover {
+        background: #fff;
+        color: #000;
+        text-decoration: none;
     }
 
 .concert-sold-out {
     color: #dc3545;
+    border-color: #dc3545;
 }
 
 .concert-soon {
-    color: #999;
+    color: #777;
 }
 
 .shows-square {
@@ -204,34 +251,25 @@
     }
 
     .concert-item {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        padding: 0.9rem 1rem;
     }
 
-    /* Kolonneoverskrifter giver ikke mening i mobilvisningen. */
-    .concert-header {
-        display: none;
+    .concert-date {
+        flex: 0 0 3.5rem;
     }
 
-    .concert-date,
-    .concert-venue,
-    .concert-city,
-    .concert-country,
-    .concert-with,
-    .concert-status,
-    .concert-event {
-        width: 100%;
-        padding: 0.25rem 0;
-        text-align: left;
+    .concert-day {
+        font-size: 1.6rem;
     }
 
-    /* Undg\u00e5 tomme linjer p\u00e5 mobil n\u00e5r et felt ikke er udfyldt. */
-    .concert-city:empty,
-    .concert-country:empty,
-    .concert-with:empty,
-    .concert-event:empty {
-        display: none;
+    .concert-info {
+        flex: 1 1 8rem;
+    }
+
+    .concert-actions {
+        flex: 1 1 100%;
     }
 
     .band-bio-grid {

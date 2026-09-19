@@ -3,6 +3,8 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 
+@using System.Globalization
+
 @inject ISalesService SalesService
 @inject NavigationManager NavManager
 
@@ -88,6 +90,49 @@ else
             </div>
         </div>
     </div>
+
+    <div class="card bg-dark text-white mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Salg pr. spillested</h5>
+            @if (!venueSales.Any())
+            {
+                <p class="mb-0">Ingen salg registreret i denne måned.</p>
+            }
+            else
+            {
+                <table class="table table-dark table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Spillested</th>
+                            <th>Dato</th>
+                            <th class="text-end">Antal solgt</th>
+                            <th class="text-end">Omsætning</th>
+                            <th style="width: 25%;">Andel</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var venue in venueSales)
+                        {
+                            var share = GetVenueSharePercent(venue);
+                            <tr>
+                                <td>@venue.DisplayName</td>
+                                <td>@(venue.EventDate.HasValue ? venue.EventDate.Value.ToString("dd-MM-yyyy") : "-")</td>
+                                <td class="text-end">@venue.TotalItemsSold</td>
+                                <td class="text-end">@venue.TotalRevenue.ToString("N2") kr.</td>
+                                <td>
+                                    <div class="progress bg-secondary" style="height: 10px;"
+                                         role="img" aria-label="@($"{share:N0} % af månedens omsætning")">
+                                        <div class="progress-bar bg-light"
+                                             style="width: @share.ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
 }
 
 @if (!string.IsNullOrEmpty(errorMessage))
@@ -142,6 +187,8 @@ else if (statistics != null)
     private DateTime? selectedDate;
     private List<DailySalesSummary> dailySummaries = new();
     private List<SalesStatisticRow> monthProductRecap = new();
+    private List<VenueSalesSummary> venueSales = new();
+    private decimal venueRevenueTotal;
     private int monthTotalItemsSold;
     private decimal monthTotalRevenue;
     private SalesStatisticsResult? statistics;
@@ -173,12 +220,17 @@ else if (statistics != null)
             monthProductRecap = monthStats.Rows;
             monthTotalItemsSold = monthStats.TotalItemsSold;
             monthTotalRevenue = monthStats.TotalRevenue;
+
+            venueSales = await SalesService.GetSalesByVenueAsync(from, to);
+            venueRevenueTotal = venueSales.Sum(v => v.TotalRevenue);
         }
         catch (Exception ex)
         {
             monthErrorMessage = $"Kunne ikke hente måneds-data: {ex.Message}";
             dailySummaries = new();
             monthProductRecap = new();
+            venueSales = new();
+            venueRevenueTotal = 0;
             monthTotalItemsSold = 0;
             monthTotalRevenue = 0;
         }
@@ -187,6 +239,9 @@ else if (statistics != null)
             isMonthLoading = false;
         }
     }
+
+    private decimal GetVenueSharePercent(VenueSalesSummary venue)
+        => venueRevenueTotal <= 0 ? 0 : venue.TotalRevenue / venueRevenueTotal * 100m;
 
     private async Task GoToPreviousMonth()
     {

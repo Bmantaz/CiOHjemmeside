@@ -2,8 +2,6 @@
 @attribute [AllowAnonymous]
 @inject IConcertService ConcertService
 
-<link rel="stylesheet" href="Components/Pages/Home.razor.css" />
-
 <PageTitle>Cursed Into Oblivion</PageTitle>
 
 <div class="home-page">
@@ -25,45 +23,46 @@
         else
         {
             <ul class="concert-list">
-                <li class="concert-item concert-header">
-                    <span class="concert-date">Date</span>
-                    <span class="concert-venue">Venue</span>
-                    <span class="concert-city">City</span>
-                    <span class="concert-country">Country</span>
-                    <span class="concert-with">With</span>
-                    <span class="concert-status">Tickets</span>
-                    <span class="concert-event">Event</span>
-                </li>
                 @foreach (var concert in upcomingConcerts)
                 {
                     <li class="concert-item">
-                        <span class="concert-date">@concert.EventDate.ToString("dd. MMM yyyy").ToUpper()</span>
-                        <span class="concert-venue">@concert.VenueName</span>
-                        <span class="concert-city">@concert.City</span>
-                        <span class="concert-country">@concert.Country</span>
-                        <span class="concert-with">@concert.OtherBands</span>
+                        <div class="concert-date">
+                            <span class="concert-day">@concert.EventDate.ToString("dd")</span>
+                            <span class="concert-month">@concert.EventDate.ToString("MMM").ToUpper()</span>
+                            <span class="concert-year">@concert.EventDate.Year</span>
+                        </div>
 
-                        @if (concert.IsSoldOut)
-                        {
-                            <span class="concert-status concert-sold-out">[SOLD OUT]</span>
-                        }
-                        else if (!string.IsNullOrWhiteSpace(concert.TicketLink))
-                        {
-                            <a href="@EnsureAbsoluteUrl(concert.TicketLink)" target="_blank" rel="noopener noreferrer" class="concert-status concert-ticket-link">[TICKETS]</a>
-                        }
-                        else
-                        {
-                            <span class="concert-status concert-soon">[SOON]</span>
-                        }
+                        <div class="concert-info">
+                            <span class="concert-venue">@concert.VenueName</span>
+                            @if (FormatLocation(concert) is { Length: > 0 } location)
+                            {
+                                <span class="concert-location">@location</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(concert.OtherBands))
+                            {
+                                <span class="concert-with">With @concert.OtherBands</span>
+                            }
+                        </div>
 
-                        @if (!string.IsNullOrWhiteSpace(concert.FacebookEventLink))
-                        {
-                            <a href="@EnsureAbsoluteUrl(concert.FacebookEventLink)" target="_blank" rel="noopener noreferrer" class="concert-event concert-ticket-link">[EVENT]</a>
-                        }
-                        else
-                        {
-                            <span class="concert-event"></span>
-                        }
+                        <div class="concert-actions">
+                            @if (concert.IsSoldOut)
+                            {
+                                <span class="concert-tag concert-sold-out">Sold out</span>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(concert.TicketLink))
+                            {
+                                <a href="@EnsureAbsoluteUrl(concert.TicketLink)" target="_blank" rel="noopener noreferrer" class="concert-tag concert-tag-link">Tickets</a>
+                            }
+                            else
+                            {
+                                <span class="concert-tag concert-soon">Soon</span>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(concert.FacebookEventLink))
+                            {
+                                <a href="@EnsureAbsoluteUrl(concert.FacebookEventLink)" target="_blank" rel="noopener noreferrer" class="concert-tag concert-tag-link">Event</a>
+                            }
+                        </div>
                     </li>
                 }
             </ul>
@@ -162,6 +161,10 @@
             isLoadingConcerts = false;
         }
     }
+
+    private static string FormatLocation(Concert concert)
+        => string.Join(", ", new[] { concert.City, concert.Country }
+            .Where(part => !string.IsNullOrWhiteSpace(part)));
 
     private static string GetVideoThumbnailOrFallback(string videoUrl, string fallbackImageUrl)
     {
