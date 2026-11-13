@@ -121,7 +121,7 @@
             <button class="btn-close-modal" @onclick="CloseVariantModal">×</button>
         </div>
         <div class="modal-body variant-grid">
-            @foreach (var variant in selectedGroup.Variants)
+            @foreach (var variant in ProductSizeOrder.Sort(selectedGroup.Variants))
             {
                 <button class="btn-variant @(variant.StockQuantity <= 0 ? "disabled" : "")"
                         @onclick="() => AddToCart(selectedGroup, variant)"

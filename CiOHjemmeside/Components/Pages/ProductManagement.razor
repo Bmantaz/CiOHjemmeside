@@ -1,0 +1,510 @@
+@page "/products-admin"
+@layout Layout.InternalLayout
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+
+@inject IProductService ProductService
+
+<PageTitle>Produkter</PageTitle>
+
+<h1>Produkter</h1>
+<p class="lead-text">
+    Opret merch, sæt pris og styr lageret pr. størrelse. Ændringer slår igennem på salgssiden med det samme.
+</p>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <p class="status-ok">@statusMessage</p>
+}
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="status-error">@errorMessage</p>
+}
+
+<section class="panel">
+    <h2>Opret nyt produkt</h2>
+    <div class="form-row">
+        <label class="field">
+            <span>Navn</span>
+            <input class="text-input" @bind="newGroupName" placeholder="fx Spear Logo T (SORT)" />
+        </label>
+        <label class="field">
+            <span>Billede</span>
+            <InputFile OnChange="OnNewImageSelected" accept="image/*" />
+        </label>
+        <button class="btn-primary-action" disabled="@isBusy" @onclick="CreateGroup">Opret produkt</button>
+    </div>
+    @if (newImage is not null)
+    {
+        <p class="muted">Valgt billede: @newImage.Name (@FormatSize(newImage.Size)) – det bliver automatisk skaleret ned.</p>
+    }
+</section>
+
+@if (groups is null)
+{
+    <p class="muted">Indlæser produkter...</p>
+}
+else if (!groups.Any())
+{
+    <p class="muted">Ingen produkter endnu.</p>
+}
+else
+{
+    @foreach (var group in groups)
+    {
+        var variants = ProductSizeOrder.Sort(group.Variants).ToList();
+        var newVariant = GetNewVariant(group);
+
+        <section class="panel product-panel">
+            <div class="product-head">
+                @if (!string.IsNullOrWhiteSpace(group.ImageUrl))
+                {
+                    <img class="product-thumb" src="@group.ImageUrl" alt="@group.GroupName" />
+                }
+                else
+                {
+                    <div class="product-thumb product-thumb-empty">Intet billede</div>
+                }
+
+                <div class="product-info">
+                    @if (renamingGroupId == group.Id)
+                    {
+                        <div class="form-row">
+                            <input class="text-input" @bind="renameValue" />
+                            <button class="btn-small" disabled="@isBusy" @onclick="() => SaveRename(group)">Gem</button>
+                            <button class="btn-small" @onclick="() => renamingGroupId = null">Annuller</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <h2>@group.GroupName</h2>
+                    }
+
+                    <p class="muted">
+                        @variants.Sum(v => v.StockQuantity) stk. på lager i alt · @variants.Count størrelser
+                    </p>
+
+                    @if (confirmDeleteGroupId == group.Id)
+                    {
+                        <div class="form-row">
+                            <span class="status-error">Slet "@group.GroupName" og alle størrelser? Salgshistorikken bevares.</span>
+                            <button class="btn-small btn-danger" disabled="@isBusy" @onclick="() => DeleteGroup(group)">Ja, slet</button>
+                            <button class="btn-small" @onclick="() => confirmDeleteGroupId = null">Fortryd</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-row">
+                            <button class="btn-small" @onclick="() => StartRename(group)">Omdøb</button>
+                            <label class="btn-small">
+                                @(string.IsNullOrWhiteSpace(group.ImageUrl) ? "Tilføj billede" : "Skift billede")
+                                <InputFile OnChange="@(e => ReplaceImage(group, e))" accept="image/*" style="display:none" />
+                            </label>
+                            <button class="btn-small btn-danger" @onclick="() => confirmDeleteGroupId = group.Id">Slet produkt</button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <table class="variant-table">
+                <thead>
+                    <tr>
+                        <th>Størrelse</th>
+                        <th>Pris (kr.)</th>
+                        <th>Lager</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var variant in variants)
+                    {
+                        var edit = GetEdit(variant);
+                        <tr class="@(edit.IsDirty ? "row-dirty" : "")">
+                            <td data-label="Størrelse"><input class="text-input" @bind="edit.Name" @bind:event="oninput" /></td>
+                            <td data-label="Pris"><input class="text-input num" type="number" min="0" step="0.01" @bind="edit.Price" @bind:event="oninput" /></td>
+                            <td data-label="Lager"><input class="text-input num" type="number" min="0" step="1" @bind="edit.Stock" @bind:event="oninput" /></td>
+                            <td class="row-actions">
+                                @if (confirmDeleteVariantId == variant.Id)
+                                {
+                                    <button class="btn-small btn-danger" disabled="@isBusy" @onclick="() => DeleteVariant(variant)">Ja, slet</button>
+                                    <button class="btn-small" @onclick="() => confirmDeleteVariantId = null">Fortryd</button>
+                                }
+                                else
+                                {
+                                    <button class="btn-small" disabled="@(isBusy || !edit.IsDirty)" @onclick="() => SaveVariant(group, variant)">Gem</button>
+                                    <button class="btn-small btn-danger" @onclick="() => confirmDeleteVariantId = variant.Id">Slet</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+
+                    <tr class="row-new">
+                        <td data-label="Ny størrelse"><input class="text-input" @bind="newVariant.Name" placeholder="fx XL" /></td>
+                        <td data-label="Pris"><input class="text-input num" type="number" min="0" step="0.01" @bind="newVariant.Price" /></td>
+                        <td data-label="Lager"><input class="text-input num" type="number" min="0" step="1" @bind="newVariant.Stock" /></td>
+                        <td class="row-actions">
+                            <button class="btn-small btn-add-variant" disabled="@isBusy" @onclick="() => AddVariant(group)">+ Tilføj størrelse</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    }
+}
+
+@code {
+    // Store fotos er OK, de bliver skaleret ned til 800px WebP inden de gemmes.
+    private const long MaxImageUploadSize = 40 * 1024 * 1024;
+
+    private List<ProductGroup>? groups;
+    private bool isBusy;
+    private string statusMessage = string.Empty;
+    private string errorMessage = string.Empty;
+
+    private string newGroupName = string.Empty;
+    private IBrowserFile? newImage;
+
+    private int? renamingGroupId;
+    private string renameValue = string.Empty;
+    private int? confirmDeleteGroupId;
+    private int? confirmDeleteVariantId;
+
+    // Redigeringer pr. variant-id og "ny størrelse"-felter pr. gruppe-id.
+    private readonly Dictionary<int, VariantEdit> edits = new();
+    private readonly Dictionary<int, NewVariantInput> newVariants = new();
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        groups = (await ProductService.GetAllGroupsWithVariantsAsync()).ToList();
+
+        // Behold ugemte ændringer i andre rækker; nulstil resten til databasens værdier.
+        var existingIds = groups.SelectMany(g => g.Variants).Select(v => v.Id).ToHashSet();
+        foreach (var id in edits.Keys.Where(id => !existingIds.Contains(id) || !edits[id].IsDirty).ToList())
+        {
+            edits.Remove(id);
+        }
+    }
+
+    private VariantEdit GetEdit(ProductVariant variant)
+    {
+        if (!edits.TryGetValue(variant.Id, out var edit))
+        {
+            edit = new VariantEdit(variant);
+            edits[variant.Id] = edit;
+        }
+        return edit;
+    }
+
+    private NewVariantInput GetNewVariant(ProductGroup group)
+    {
+        if (!newVariants.TryGetValue(group.Id, out var input))
+        {
+            // Forudfyld prisen med gruppens seneste pris, så man ikke skal taste den igen.
+            input = new NewVariantInput { Price = group.Variants.LastOrDefault(v => v.Price.HasValue)?.Price };
+            newVariants[group.Id] = input;
+        }
+        return input;
+    }
+
+    private void ClearMessages()
+    {
+        statusMessage = string.Empty;
+        errorMessage = string.Empty;
+    }
+
+    private void OnNewImageSelected(InputFileChangeEventArgs e) => newImage = e.File;
+
+    private async Task CreateGroup()
+    {
+        ClearMessages();
+        var name = newGroupName.Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errorMessage = "Angiv et produktnavn.";
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            if (await ProductService.GroupNameExistsAsync(name))
+            {
+                errorMessage = $"Der findes allerede et produkt der hedder \"{name}\".";
+                return;
+            }
+
+            var groupId = await ProductService.AddGroupAsync(new ProductGroup { GroupName = name });
+
+            if (newImage is not null)
+            {
+                try
+                {
+                    await ProductService.SetGroupImageAsync(groupId, await ReadFileAsync(newImage));
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = $"Produktet blev oprettet, men billedet kunne ikke gemmes: {DescribeImageError(ex)}";
+                }
+            }
+
+            statusMessage = $"\"{name}\" blev oprettet. Tilføj størrelser, pris og lager nedenfor.";
+            newGroupName = string.Empty;
+            newImage = null;
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke oprette produktet: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void StartRename(ProductGroup group)
+    {
+        renamingGroupId = group.Id;
+        renameValue = group.GroupName;
+        confirmDeleteGroupId = null;
+    }
+
+    private async Task SaveRename(ProductGroup group)
+    {
+        ClearMessages();
+        var name = renameValue.Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errorMessage = "Navnet må ikke være tomt.";
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            if (await ProductService.GroupNameExistsAsync(name, group.Id))
+            {
+                errorMessage = $"Der findes allerede et produkt der hedder \"{name}\".";
+                return;
+            }
+
+            await ProductService.UpdateGroupAsync(new ProductGroup { Id = group.Id, GroupName = name, ImageUrl = group.ImageUrl });
+            renamingGroupId = null;
+            statusMessage = $"Produktet hedder nu \"{name}\".";
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke omdøbe: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task ReplaceImage(ProductGroup group, InputFileChangeEventArgs e)
+    {
+        ClearMessages();
+        isBusy = true;
+        try
+        {
+            await ProductService.SetGroupImageAsync(group.Id, await ReadFileAsync(e.File));
+            statusMessage = $"Billedet for \"{group.GroupName}\" blev opdateret.";
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke gemme billedet: {DescribeImageError(ex)}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DeleteGroup(ProductGroup group)
+    {
+        ClearMessages();
+        isBusy = true;
+        try
+        {
+            await ProductService.DeleteGroupAsync(group.Id);
+            confirmDeleteGroupId = null;
+            newVariants.Remove(group.Id);
+            statusMessage = $"\"{group.GroupName}\" blev slettet.";
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke slette produktet: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task AddVariant(ProductGroup group)
+    {
+        ClearMessages();
+        var input = GetNewVariant(group);
+        var name = input.Name.Trim();
+
+        var validation = Validate(group, name, input.Price, input.Stock, excludeVariantId: null);
+        if (validation is not null)
+        {
+            errorMessage = validation;
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            await ProductService.AddVariantAsync(new ProductVariant
+            {
+                ProductGroupId = group.Id,
+                VariantName = name,
+                Price = input.Price,
+                StockQuantity = input.Stock
+            });
+
+            statusMessage = $"{group.GroupName} {name} tilføjet med {input.Stock} stk.";
+
+            // Behold prisen til næste størrelse, ryd resten.
+            newVariants[group.Id] = new NewVariantInput { Price = input.Price };
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke tilføje størrelsen: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SaveVariant(ProductGroup group, ProductVariant variant)
+    {
+        ClearMessages();
+        var edit = GetEdit(variant);
+        var name = edit.Name.Trim();
+
+        var validation = Validate(group, name, edit.Price, edit.Stock, excludeVariantId: variant.Id);
+        if (validation is not null)
+        {
+            errorMessage = validation;
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            // Lageret gemmes som en ændring (+/-) i forhold til det, siden viste,
+            // så et salg der sker imens ikke bliver overskrevet.
+            var delta = edit.Stock - edit.OriginalStock;
+            await ProductService.SaveVariantAsync(variant.Id, name, edit.Price, delta);
+
+            edits.Remove(variant.Id);
+            statusMessage = $"{group.GroupName} {name} gemt.";
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke gemme: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DeleteVariant(ProductVariant variant)
+    {
+        ClearMessages();
+        isBusy = true;
+        try
+        {
+            await ProductService.DeleteVariantAsync(variant.Id);
+            edits.Remove(variant.Id);
+            confirmDeleteVariantId = null;
+            statusMessage = $"Størrelsen {variant.VariantName} blev slettet.";
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke slette størrelsen: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private static string? Validate(ProductGroup group, string name, decimal? price, int stock, int? excludeVariantId)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "Angiv en størrelse.";
+        if (price is null || price < 0)
+            return "Angiv en pris (0 eller mere).";
+        if (stock < 0)
+            return "Lager kan ikke være negativt.";
+
+        // Salg finder varianten på navn, så to ens størrelser i samme produkt må ikke findes.
+        var duplicate = group.Variants.Any(v =>
+            v.Id != excludeVariantId &&
+            string.Equals(v.VariantName.Trim(), name, StringComparison.OrdinalIgnoreCase));
+
+        return duplicate ? $"{group.GroupName} har allerede størrelsen {name}." : null;
+    }
+
+    private static async Task<byte[]> ReadFileAsync(IBrowserFile file)
+    {
+        using var stream = file.OpenReadStream(MaxImageUploadSize);
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        return buffer.ToArray();
+    }
+
+    private static string DescribeImageError(Exception ex) => ex switch
+    {
+        IOException => $"filen er for stor (maks {FormatSize(MaxImageUploadSize)}).",
+        SixLabors.ImageSharp.UnknownImageFormatException => "filen er ikke et billedformat vi kan læse.",
+        _ => ex.Message
+    };
+
+    private static string FormatSize(long bytes) =>
+        bytes >= 1024 * 1024 ? $"{bytes / (1024.0 * 1024.0):0.#} MB" : $"{bytes / 1024.0:0.#} KB";
+
+    private sealed class VariantEdit
+    {
+        public VariantEdit(ProductVariant variant)
+        {
+            Name = OriginalName = variant.VariantName;
+            Price = OriginalPrice = variant.Price;
+            Stock = OriginalStock = variant.StockQuantity;
+        }
+
+        public string Name { get; set; }
+        public decimal? Price { get; set; }
+        public int Stock { get; set; }
+
+        public string OriginalName { get; }
+        public decimal? OriginalPrice { get; }
+        public int OriginalStock { get; }
+
+        public bool IsDirty => Name != OriginalName || Price != OriginalPrice || Stock != OriginalStock;
+    }
+
+    private sealed class NewVariantInput
+    {
+        public string Name { get; set; } = string.Empty;
+        public decimal? Price { get; set; }
+        public int Stock { get; set; }
+    }
+}

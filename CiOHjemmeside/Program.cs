@@ -97,4 +97,13 @@ app.MapGet("/epk-thumb/{id:int}", async (int id, IEpkAssetService assetService) 
         : Results.File(thumb.Content, thumb.ContentType);
 });
 
+// Serverer produktbilleder (komprimeret WebP) fra databasen til salgssiden.
+app.MapGet("/product-image/{id:int}", async (int id, IProductService productService) =>
+{
+    var image = await productService.GetGroupImageAsync(id);
+    return image is null
+        ? Results.NotFound()
+        : Results.File(image.Content, image.ContentType);
+});
+
 app.Run();

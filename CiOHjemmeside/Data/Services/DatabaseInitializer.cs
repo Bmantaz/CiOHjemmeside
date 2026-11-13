@@ -47,6 +47,10 @@ namespace CiOHjemmeside.Data.Services
                 );
                 CREATE INDEX IF NOT EXISTS idx_epkassets_category ON epkassets (category, sortorder);
 
+                -- Produktbilleder gemmes i databasen (ikke wwwroot), saa de overlever en ny deploy.
+                ALTER TABLE productgroups ADD COLUMN IF NOT EXISTS imagedata BYTEA;
+                ALTER TABLE productgroups ADD COLUMN IF NOT EXISTS imagecontenttype TEXT;
+
                 ALTER TABLE concerts ADD COLUMN IF NOT EXISTS otherbands TEXT;
                 ALTER TABLE concerts ADD COLUMN IF NOT EXISTS facebookeventlink TEXT;
 

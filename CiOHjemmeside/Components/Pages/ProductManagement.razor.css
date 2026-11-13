@@ -1,0 +1,245 @@
+h1 {
+    margin-bottom: 0.25rem;
+}
+
+.lead-text {
+    color: #999;
+    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 1.5rem;
+}
+
+.muted {
+    color: #888;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    margin: 0.4rem 0 0;
+}
+
+.status-ok {
+    color: #3ccf7a;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.status-error {
+    color: #ff4d60;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.panel {
+    background: #121212;
+    border: 1px solid #333;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+    .panel h2 {
+        font-family: 'Arial Black', 'Impact', sans-serif;
+        font-size: 1.15rem;
+        margin: 0 0 0.75rem;
+    }
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+    .field > span {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #888;
+    }
+
+.text-input {
+    background: #0a0a0a;
+    color: #f0f0f0;
+    border: 1px solid #333;
+    padding: 0.45rem 0.6rem;
+    min-width: 0;
+    width: 100%;
+}
+
+    .text-input:focus {
+        outline: none;
+        border-color: #fff;
+    }
+
+.form-row .text-input {
+    width: auto;
+    min-width: 240px;
+}
+
+.text-input.num {
+    max-width: 120px;
+}
+
+.btn-primary-action {
+    background: #fff;
+    color: #000;
+    border: 1px solid #fff;
+    padding: 0.5rem 1rem;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+    .btn-primary-action:hover:not(:disabled) {
+        background: #ccc;
+    }
+
+.btn-small {
+    display: inline-block;
+    background: none;
+    border: 1px solid #555;
+    color: #ddd;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+    .btn-small:hover:not(:disabled) {
+        border-color: #fff;
+        color: #fff;
+    }
+
+    .btn-small:disabled,
+    .btn-primary-action:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+.btn-danger {
+    border-color: #6b1a22;
+    color: #ff4d60;
+}
+
+.btn-add-variant {
+    border-color: #198754;
+    color: #3ccf7a;
+}
+
+.product-head {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.product-thumb {
+    width: 120px;
+    height: 120px;
+    flex: 0 0 120px;
+    object-fit: contain;
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+}
+
+.product-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    font-size: 0.8rem;
+}
+
+.product-info {
+    flex: 1;
+    min-width: 0;
+}
+
+    .product-info .form-row {
+        margin-top: 0.75rem;
+        align-items: center;
+    }
+
+.variant-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .variant-table th {
+        text-align: left;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #888;
+        padding: 0.5rem;
+        border-bottom: 1px solid #333;
+    }
+
+    .variant-table td {
+        padding: 0.4rem 0.5rem;
+        border-bottom: 1px solid #222;
+    }
+
+.row-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+    .row-actions .btn-small + .btn-small {
+        margin-left: 0.4rem;
+    }
+
+.row-dirty td {
+    background: #1d1a10;
+}
+
+.row-new td {
+    border-bottom: none;
+    padding-top: 0.8rem;
+}
+
+@media (max-width: 700px) {
+    .product-head {
+        flex-direction: column;
+    }
+
+    .variant-table thead {
+        display: none;
+    }
+
+    .variant-table tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.4rem;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #222;
+    }
+
+    .variant-table td {
+        border: none;
+        padding: 0;
+    }
+
+        .variant-table td[data-label]::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #777;
+        }
+
+    .row-actions {
+        grid-column: 1 / -1;
+        text-align: left;
+    }
+
+    .text-input.num {
+        max-width: none;
+    }
+
+    .form-row .text-input {
+        min-width: 0;
+        width: 100%;
+    }
+}
