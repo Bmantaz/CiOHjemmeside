@@ -6,10 +6,10 @@
 @inject IConcertService ConcertService
 @inject NavigationManager NavManager
 @inject ProtectedSessionStorage SessionStorage
+@inject IJSRuntime JS
+@implements IDisposable
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using System.Security.Claims
-
-<link rel="stylesheet" href="Components/Pages/Sales.razor.css" />
 
 <PageTitle>Sales Dashboard</PageTitle>
 
@@ -32,23 +32,46 @@
         {
             @foreach (var group in productGroups)
             {
-                <div class="product-card" @onclick="() => SelectProductGroup(group)">
-                    <img src="@(string.IsNullOrEmpty(group.ImageUrl) ? "/images/placeholder.png" : group.ImageUrl)" alt="@group.GroupName" />
-                    <div class="product-name">@group.GroupName</div>
+                var inStock = group.Variants.Sum(v => v.StockQuantity);
+                <div class="product-card @(inStock <= 0 ? "sold-out" : "")" @onclick="() => SelectProductGroup(group)">
+                    <div class="product-media">
+                        @if (!string.IsNullOrEmpty(group.ImageUrl))
+                        {
+                            <img src="@group.ImageUrl" alt="@group.GroupName" />
+                        }
+                        else
+                        {
+                            <span class="product-media-empty">CIO</span>
+                        }
+                        @if (inStock <= 0)
+                        {
+                            <span class="product-badge">Udsolgt</span>
+                        }
+                    </div>
+                    <div class="product-info">
+                        <span class="product-name">@group.GroupName</span>
+                        <span class="product-meta">@PriceLabel(group) &middot; @inStock på lager</span>
+                    </div>
                 </div>
             }
         }
     </div>
 
     <div class="cart-section">
-        <h3>Indkøbskurv</h3>
+        <p class="pos-kicker">Merch stand</p>
+        <h3 class="pos-title">Kurv</h3>
+        <div class="pos-rule"></div>
+
         <div class="seller-indicator">
-            <span>Aktiv sælger: <strong>@(string.IsNullOrWhiteSpace(selectedRecipientName) ? "Ingen valgt" : selectedRecipientName)</strong></span>
-            <button type="button" class="btn-switch-seller" @onclick="OpenSellerSelection">Skift sælger</button>
+            <span class="seller-current">
+                <span class="pos-label">Aktiv sælger</span>
+                <strong>@(string.IsNullOrWhiteSpace(selectedRecipientName) ? "Ingen valgt" : selectedRecipientName)</strong>
+            </span>
+            <button type="button" class="btn-switch-seller" @onclick="OpenSellerSelection">Skift</button>
         </div>
 
         <div class="show-picker">
-            <label for="show-select">Show / spillested</label>
+            <label class="pos-label" for="show-select">Show / spillested</label>
             <select id="show-select" class="form-select" @bind="selectedConcertId">
                 <option value="">Ukendt / ikke et show</option>
                 @foreach (var concert in concerts)
@@ -70,30 +93,37 @@
                 @foreach (var item in cart)
                 {
                     <div class="cart-item">
-                        <span>@item.Variant.VariantName @item.Group.GroupName</span>
-                        <span class="cart-item-price">@item.Variant.Price?.ToString("N2") kr.</span>
-                        <button class="btn-remove-item" @onclick="() => RemoveFromCart(item)">×</button>
+                        <span class="cart-item-size">@item.Variant.VariantName</span>
+                        <span class="cart-item-name">@item.Group.GroupName</span>
+                        <span class="cart-item-price">@FormatKr(item.Variant.Price ?? 0m)</span>
+                        <button class="btn-remove-item" @onclick="() => RemoveFromCart(item)" aria-label="Fjern @item.Group.GroupName @item.Variant.VariantName">×</button>
                     </div>
                 }
             </div>
-            <hr class="cart-divider" />
             <div class="cart-total">
-                <span>Total</span>
-                <span>@GetCartTotal().ToString("N2") kr.</span>
+                <span class="pos-label">Total &middot; @cart.Count stk.</span>
+                <span class="cart-total-amount">@FormatKr(GetCartTotal())</span>
             </div>
         }
 
-        <button class="btn-sell" @onclick="ShowPaymentModal" disabled="@(!cart.Any() || string.IsNullOrWhiteSpace(selectedRecipientName))">
-            [ SÆLG ]
-        </button>
+        @{ var canPay = cart.Any() && !string.IsNullOrWhiteSpace(selectedRecipientName); }
+        <div class="pay-buttons">
+            <button class="btn-pay btn-pay-mobilepay" @onclick="OpenCustomerScreen" disabled="@(!canPay)">
+                MobilePay
+                <span class="btn-pay-sub">Vend skærmen til kunden</span>
+            </button>
+            <button class="btn-pay btn-pay-cash" @onclick="OpenCashModal" disabled="@(!canPay)">
+                Kontant
+            </button>
+        </div>
 
         @if (!string.IsNullOrEmpty(saleStatusMessage))
         {
-            <p class="text-success mt-3 mb-0">@saleStatusMessage</p>
+            <p class="pos-status pos-status-ok">@saleStatusMessage</p>
         }
         @if (!string.IsNullOrEmpty(saleErrorMessage))
         {
-            <p class="text-danger mt-3 mb-0">@saleErrorMessage</p>
+            <p class="pos-status pos-status-error">@saleErrorMessage</p>
         }
     </div>
 </div>
@@ -105,14 +135,17 @@
     <div class="modal-backdrop" @onclick="() => { if (hasSeller) isSellerSelectionVisible = false; }"></div>
     <div class="modal-content seller-modal">
         <div class="modal-header">
-            <h3>@(hasSeller ? "Skift sælger" : "Åbn Shop")</h3>
+            <div>
+                <p class="pos-kicker">Merch stand</p>
+                <h3>@(hasSeller ? "Skift sælger" : "Åbn shop")</h3>
+            </div>
             @if (hasSeller)
             {
-                <button class="btn-close-modal" @onclick="() => isSellerSelectionVisible = false">×</button>
+                <button class="btn-close-modal" @onclick="() => isSellerSelectionVisible = false" aria-label="Luk">×</button>
             }
         </div>
-        <div class="modal-body text-center">
-            <p>Hvem står bag disken nu? Salg registreres på denne person, og MobilePay går til deres nummer.</p>
+        <div class="modal-body">
+            <p class="modal-lead">Hvem står bag disken nu? Salg registreres på denne person, og MobilePay går til deres nummer.</p>
             <div class="seller-grid">
                 @foreach (var recipient in mobilePayRecipients)
                 {
@@ -129,71 +162,145 @@
 @if (selectedGroup != null)
 {
     <div class="modal-backdrop" @onclick="CloseVariantModal"></div>
-    <div class="modal-content">
+    <div class="modal-content variant-modal">
         <div class="modal-header">
-            <h3>Vælg Varianter: @selectedGroup.GroupName</h3>
-            <button class="btn-close-modal" @onclick="CloseVariantModal">×</button>
+            <div>
+                <p class="pos-kicker">Vælg størrelse</p>
+                <h3>@selectedGroup.GroupName</h3>
+            </div>
+            <button class="btn-close-modal" @onclick="CloseVariantModal" aria-label="Luk">×</button>
         </div>
         <div class="modal-body variant-grid">
             @foreach (var variant in ProductSizeOrder.Sort(selectedGroup.Variants))
             {
-                <button class="btn-variant @(variant.StockQuantity <= 0 ? "disabled" : "")"
+                var soldOut = variant.StockQuantity <= 0;
+                var inCart = cart.Count(c => c.Variant == variant);
+                <button class="btn-variant @(soldOut ? "disabled" : "") @(inCart > 0 ? "in-cart" : "")"
                         @onclick="() => AddToCart(selectedGroup, variant)"
-                        disabled="@(variant.StockQuantity <= 0)">
+                        disabled="@soldOut">
+                    @if (inCart > 0)
+                    {
+                        <span class="variant-count">@inCart</span>
+                    }
                     <span class="variant-name">@variant.VariantName</span>
-                    <span class="variant-stock">Lager: @variant.StockQuantity</span>
+                    <span class="variant-stock">@(soldOut ? "Udsolgt" : $"{variant.StockQuantity} på lager")</span>
                 </button>
             }
+        </div>
+        <div class="modal-footer-bar">
+            <span class="pos-label">@cart.Count stk. i kurven &middot; @FormatKr(GetCartTotal())</span>
+            <button class="btn-modal-done" @onclick="CloseVariantModal">Færdig</button>
         </div>
     </div>
 }
 
+@* ---------- Kontant: vendt mod sælgeren, med byttepenge-beregner ---------- *@
 @if (isPaymentModalVisible)
 {
     <div class="modal-backdrop" @onclick="ClosePaymentModal"></div>
     <div class="modal-content payment-modal">
         <div class="modal-header">
-            <h3>Betaling</h3>
-            <button class="btn-close-modal" @onclick="ClosePaymentModal">×</button>
+            <div>
+                <p class="pos-kicker">Betaling</p>
+                <h3>Kontant</h3>
+            </div>
+            <button class="btn-close-modal" @onclick="ClosePaymentModal" aria-label="Luk">×</button>
         </div>
         <div class="modal-body text-center">
-            <h4>Total: @GetCartTotal().ToString("N2") kr.</h4>
-            <p class="seller-indicator">Sælger: <strong>@selectedRecipientName</strong></p>
-            <div class="payment-methods">
-                <button class="btn-payment-method @(selectedPaymentMethod == "MobilePay" ? "active" : "")" @onclick="SetMobilePay">MobilePay</button>
-                <button class="btn-payment-method @(selectedPaymentMethod == "Cash" ? "active" : "")" @onclick="SetCash">Cash</button>
-            </div>
+            <span class="pos-label">At betale</span>
+            <div class="cash-total">@FormatKr(GetCartTotal())</div>
+            <p class="cash-seller">Sælger: <strong>@selectedRecipientName</strong></p>
 
-            @if (selectedPaymentMethod == "MobilePay")
-            {
-                <p>Send MobilePay til:</p>
-                <p class="mobilepay-recipient">@GetSelectedRecipientDisplay()</p>
-            }
-            else
-            {
-                <div class="cash-box">
-                    <label for="cashReceived">Cash modtaget (kr.)</label>
-                    <input id="cashReceived" class="cash-input" type="number" min="0" step="1" @bind="cashReceivedInput" @bind:event="oninput" />
-                    <p>Byttepenge: <strong>@GetCashChange().ToString("N2") kr.</strong></p>
-                    @if (!IsCashPaymentValid())
+            <div class="cash-box">
+                <label class="pos-label" for="cashReceived">Modtaget (kr.)</label>
+                <input id="cashReceived" class="cash-input" type="number" inputmode="numeric" min="0" step="1"
+                       @bind="cashReceivedInput" @bind:event="oninput" />
+                <div class="cash-quick">
+                    @foreach (var amount in GetQuickCashAmounts())
                     {
-                        <p class="text-danger small">Beløbet er mindre end totalen.</p>
+                        <button type="button" class="btn-cash-quick" @onclick="() => cashReceivedInput = amount.ToString()">@amount kr.</button>
                     }
                 </div>
+                <p class="cash-change">Byttepenge: <strong>@FormatKr(GetCashChange())</strong></p>
+                @if (!string.IsNullOrWhiteSpace(cashReceivedInput) && !IsCashPaymentValid())
+                {
+                    <p class="text-danger small">Beløbet er mindre end totalen.</p>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(saleErrorMessage))
+            {
+                <p class="text-danger">@saleErrorMessage</p>
             }
 
             <button class="btn-complete-sale" @onclick="CompleteSale" disabled="@(isCompletingSale || !CanCompletePayment())">
-                @if (isCompletingSale)
+                @(isCompletingSale ? "Gemmer..." : "Bekræft kontant salg")
+            </button>
+        </div>
+    </div>
+}
+
+@* ---------- MobilePay: fuldskærm vendt mod kunden ---------- *@
+@if (isCustomerScreenVisible)
+{
+    var recipient = mobilePayRecipients.FirstOrDefault(r => r.Name == selectedRecipientName);
+    <div class="customer-screen" role="dialog" aria-label="MobilePay betaling">
+        <div class="cs-main">
+            <div class="cs-brand">MobilePay</div>
+
+            <div class="cs-label">Beløb &middot; Amount</div>
+            <div class="cs-amount">@FormatKr(GetCartTotal())</div>
+
+            <div class="cs-label">Send til &middot; Send to</div>
+            <div class="cs-phone">@(recipient?.PhoneNumber ?? "—")</div>
+            <div class="cs-name">@selectedRecipientName</div>
+
+            <ul class="cs-items">
+                @foreach (var line in GetCartLines())
                 {
-                    <span>Behandler...</span>
+                    <li>@line</li>
+                }
+            </ul>
+        </div>
+
+        <div class="cs-seller-bar">
+            <button type="button" class="cs-back" @onclick="CloseCustomerScreen" disabled="@isCompletingSale">&larr; Tilbage</button>
+
+            <div class="cs-seller-right">
+                @if (!string.IsNullOrEmpty(saleErrorMessage))
+                {
+                    <span class="cs-error">@saleErrorMessage</span>
                 }
                 else
                 {
-
-                    <span>BETALING GENNEMFØRT (OPDATER LAGER)</span>
+                    <span class="cs-hint">Sælger: hold knappen inde, når du har set betalingen</span>
                 }
-            </button>
+
+                <button type="button"
+                        class="cs-hold @(isHolding ? "holding" : "")"
+                        disabled="@isCompletingSale"
+                        @onpointerdown="StartHoldToConfirm"
+                        @onpointerup="CancelHoldToConfirm"
+                        @onpointerleave="CancelHoldToConfirm"
+                        @onpointercancel="CancelHoldToConfirm"
+                        @oncontextmenu:preventDefault>
+                    <span class="cs-hold-fill" style="--hold-ms: @(HoldToConfirmMs)ms"></span>
+                    <span class="cs-hold-text">@(isCompletingSale ? "Gemmer..." : isHolding ? "Bliv ved..." : "Hold for at bekræfte salg")</span>
+                </button>
+            </div>
         </div>
+    </div>
+}
+
+@* ---------- Kvittering: tydelig bekræftelse, lukker selv ---------- *@
+@if (confirmedSale is not null)
+{
+    <div class="sale-confirmed" @onclick="DismissConfirmation">
+        <div class="sale-confirmed-check">&#10003;</div>
+        <div class="sale-confirmed-title">Betalt</div>
+        <div class="sale-confirmed-amount">@FormatKr(confirmedSale.Amount)</div>
+        <div class="sale-confirmed-sub">Tak for købet! &middot; Thank you!</div>
+        <div class="sale-confirmed-meta">@confirmedSale.Method &middot; registreret på @confirmedSale.Seller</div>
     </div>
 }
 
@@ -323,14 +430,96 @@
         cart.Remove(item);
     }
 
-    private void ShowPaymentModal()
+    // ---------- Betaling ----------
+
+    // Hvor længe sælgeren skal holde "bekræft" inde på kundeskærmen. Et hurtigt
+    // (fuldt) kundetryk bekræfter derfor aldrig et salg ved et uheld.
+    private const int HoldToConfirmMs = 1500;
+
+    private static readonly System.Globalization.CultureInfo Danish = new("da-DK");
+
+    private bool isCustomerScreenVisible;
+    private bool isHolding;
+    private CancellationTokenSource? holdCts;
+    private ConfirmedSale? confirmedSale;
+    private CancellationTokenSource? confirmationCts;
+
+    private void OpenCustomerScreen()
     {
         saleStatusMessage = string.Empty;
         saleErrorMessage = string.Empty;
+        selectedPaymentMethod = "MobilePay";
+        isCustomerScreenVisible = true;
+    }
+
+    private void CloseCustomerScreen()
+    {
+        CancelHoldToConfirm();
+        saleErrorMessage = string.Empty;
+        isCustomerScreenVisible = false;
+    }
+
+    private void OpenCashModal()
+    {
+        saleStatusMessage = string.Empty;
+        saleErrorMessage = string.Empty;
+        selectedPaymentMethod = "Cash";
+        cashReceivedInput = string.Empty;
         isPaymentModalVisible = true;
     }
 
     private void ClosePaymentModal() => isPaymentModalVisible = false;
+
+    private async Task StartHoldToConfirm()
+    {
+        if (isCompletingSale || isHolding) return;
+
+        isHolding = true;
+        holdCts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(HoldToConfirmMs, holdCts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return; // Sluppet for tidligt.
+        }
+
+        isHolding = false;
+        await CompleteSale();
+    }
+
+    private void CancelHoldToConfirm()
+    {
+        holdCts?.Cancel();
+        isHolding = false;
+    }
+
+    private void DismissConfirmation()
+    {
+        confirmationCts?.Cancel();
+        confirmedSale = null;
+    }
+
+    private async Task ShowConfirmationAsync(ConfirmedSale sale)
+    {
+        confirmationCts?.Cancel();
+        confirmationCts = new CancellationTokenSource();
+        var token = confirmationCts.Token;
+        confirmedSale = sale;
+
+        try
+        {
+            await Task.Delay(3000, token);
+            confirmedSale = null;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException)
+        {
+            // Lukket manuelt eller nyt salg.
+        }
+    }
 
     private async Task CompleteSale()
     {
@@ -338,6 +527,8 @@
 
         isCompletingSale = true;
         saleErrorMessage = string.Empty;
+        var amount = GetCartTotal();
+        var method = selectedPaymentMethod == "Cash" ? "Kontant" : "MobilePay";
 
         try
         {
@@ -354,28 +545,60 @@
 
             await SalesService.RecordSaleAsync(_currentUserId, saleItems, null, selectedConcertId, selectedRecipientName);
 
-            saleStatusMessage = $"Salg gennemført – registreret på {selectedRecipientName}.";
+            saleStatusMessage = $"Salg gennemført – {FormatKr(amount)} registreret på {selectedRecipientName}.";
             cart.Clear();
             isPaymentModalVisible = false;
+            isCustomerScreenVisible = false;
             await LoadProductsAsync(); // Opdater lageret i UI fra DB
         }
         catch (Exception ex)
         {
-            saleErrorMessage = $"Fejl ved lagring: {ex.Message}";
+            saleErrorMessage = $"Salget blev IKKE gemt: {ex.Message}";
+            return;
         }
         finally
         {
             isCompletingSale = false;
         }
+
+        // Vises efter finally, så knapperne allerede er låst op bag kvitteringen.
+        _ = ShowConfirmationAsync(new ConfirmedSale(amount, method, selectedRecipientName));
     }
 
-    private void SetMobilePay() => selectedPaymentMethod = "MobilePay";
-    private void SetCash() => selectedPaymentMethod = "Cash";
     private decimal GetCartTotal() => cart.Sum(i => i.Variant.Price ?? 0m);
 
+    /// <summary>"200 kr." – eller "fra 125 kr." hvis størrelserne har forskellige priser.</summary>
+    private static string PriceLabel(ProductGroup group)
+    {
+        var prices = group.Variants.Where(v => v.Price.HasValue).Select(v => v.Price!.Value).Distinct().ToList();
+        if (!prices.Any()) return "Ingen pris";
+        return prices.Count == 1 ? FormatKr(prices[0]) : $"fra {FormatKr(prices.Min())}";
+    }
+
+    private static string FormatKr(decimal amount) =>
+        (amount % 1 == 0 ? amount.ToString("N0", Danish) : amount.ToString("N2", Danish)) + " kr.";
+
+    /// <summary>Kurven samlet til linjer som "2 × Spear Logo T (SORT) · L" til kundeskærmen.</summary>
+    private IEnumerable<string> GetCartLines() =>
+        cart.GroupBy(i => (i.Group.GroupName, i.Variant.VariantName))
+            .Select(g => $"{g.Count()} × {g.Key.GroupName} · {g.Key.VariantName}");
+
+    /// <summary>Typiske sedler/beløb kunden betaler med, fx 200 → 200, 250, 300, 500.</summary>
+    private IEnumerable<int> GetQuickCashAmounts()
+    {
+        var total = (int)Math.Ceiling(GetCartTotal());
+        return new[] { total, RoundUp(total, 50), RoundUp(total, 100), RoundUp(total, 500) }
+            .Where(a => a > 0)
+            .Distinct()
+            .Take(4);
+
+        static int RoundUp(int value, int step) => (value + step - 1) / step * step;
+    }
+
+    // Tomt felt er OK (sælgeren har bare talt pengene); udfyldt skal det dække totalen.
     private bool IsCashPaymentValid()
     {
-        if (selectedPaymentMethod != "Cash") return true;
+        if (selectedPaymentMethod != "Cash" || string.IsNullOrWhiteSpace(cashReceivedInput)) return true;
         return decimal.TryParse(cashReceivedInput, out var received) && received >= GetCartTotal();
     }
 
@@ -388,11 +611,22 @@
 
     private bool CanCompletePayment() => !string.IsNullOrWhiteSpace(selectedRecipientName) && (selectedPaymentMethod == "MobilePay" || IsCashPaymentValid());
 
-    private string GetSelectedRecipientDisplay()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var recipient = mobilePayRecipients.FirstOrDefault(r => r.Name == selectedRecipientName);
-        return recipient != null ? $"{recipient.Name}: {recipient.PhoneNumber}" : "Vælg person";
+        if (firstRender)
+        {
+            // Hold iPad'en vågen mens salgssiden er åben (Safari 16.4+). Fejler stille ellers.
+            try { await JS.InvokeVoidAsync("cioSales.keepAwake"); } catch { }
+        }
+    }
+
+    public void Dispose()
+    {
+        holdCts?.Cancel();
+        confirmationCts?.Cancel();
     }
 
     private sealed record MobilePayRecipient(string Name, string PhoneNumber);
+
+    private sealed record ConfirmedSale(decimal Amount, string Method, string Seller);
 }
