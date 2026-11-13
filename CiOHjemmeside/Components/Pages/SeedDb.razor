@@ -35,7 +35,7 @@
                     <h5 class="mb-0">Brugere</h5>
                 </div>
                 <div class="card-body">
-                    <p>Opretter de 6 standardbrugere (Bjarke, Kristofer, Henrik, Michal, Sebastian og Sales).</p>
+                    <p>Opretter de 5 standardbrugere (Bjarke, Kristofer, Henrik, Sebastian og Sales).</p>
                     <button class="btn btn-primary" @onclick="SeedUsers" disabled="@(isProcessing || !HostEnvironment.IsDevelopment())">
                         @if (isProcessing)
                         {
@@ -102,7 +102,6 @@
             ("Bjarke", "Admin"),
             ("Kristofer", "Member"),
             ("Henrik", "Member"),
-            ("Michal", "Member"),
             ("Sebastian", "Member"),
             ("Sales", "Sales")
         };

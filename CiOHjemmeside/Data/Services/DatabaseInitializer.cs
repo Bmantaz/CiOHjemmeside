@@ -62,6 +62,11 @@ namespace CiOHjemmeside.Data.Services
                 ALTER TABLE sales ADD COLUMN IF NOT EXISTS concertid INT NULL REFERENCES concerts(id) ON DELETE SET NULL;
                 CREATE INDEX IF NOT EXISTS idx_sales_concertid ON sales (concertid);
 
+                -- Hvem stod bag disken. soldbyuserid er den indloggede konto (ofte den
+                -- faelles 'Sales'-bruger), sellername er det bandmedlem der faktisk solgte.
+                -- Nullable, fordi aeldre salg ikke har en saelger (vises som 'Ukendt').
+                ALTER TABLE sales ADD COLUMN IF NOT EXISTS sellername TEXT NULL;
+
                 DO $$
                 BEGIN
                     IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendarevents_eventtype_check') THEN

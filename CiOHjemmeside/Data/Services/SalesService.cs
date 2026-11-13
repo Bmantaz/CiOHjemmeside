@@ -51,7 +51,7 @@ namespace CiOHjemmeside.Data.Services
             return groupDict.Values.ToList();
         }
 
-        public async Task RecordSaleAsync(int soldByUserId, IEnumerable<SaleItemInput> items, DateTime? soldAtUtc = null, int? concertId = null)
+        public async Task RecordSaleAsync(int soldByUserId, IEnumerable<SaleItemInput> items, DateTime? soldAtUtc = null, int? concertId = null, string? sellerName = null)
         {
             var normalizedItems = items.Where(i => i.Quantity > 0).ToList();
             if (!normalizedItems.Any()) return;
@@ -66,10 +66,17 @@ namespace CiOHjemmeside.Data.Services
 
                 // 1. Opret salgs-hovedpost
                 var saleId = await connection.QuerySingleAsync<int>(
-                    @"INSERT INTO sales (soldat, soldbyuserid, totalamount, concertid)
-                      VALUES (@SoldAt, @SoldByUserId, @TotalAmount, @ConcertId)
+                    @"INSERT INTO sales (soldat, soldbyuserid, totalamount, concertid, sellername)
+                      VALUES (@SoldAt, @SoldByUserId, @TotalAmount, @ConcertId, @SellerName)
                       RETURNING id",
-                    new { SoldAt = soldAt, SoldByUserId = soldByUserId, TotalAmount = totalAmount, ConcertId = concertId },
+                    new
+                    {
+                        SoldAt = soldAt,
+                        SoldByUserId = soldByUserId,
+                        TotalAmount = totalAmount,
+                        ConcertId = concertId,
+                        SellerName = string.IsNullOrWhiteSpace(sellerName) ? null : sellerName.Trim()
+                    },
                     transaction);
 
                 foreach (var item in normalizedItems)
@@ -156,6 +163,30 @@ namespace CiOHjemmeside.Data.Services
                 ORDER BY TotalItemsSold DESC";
 
             var rows = await connection.QueryAsync<VenueSalesSummary>(
+                sql,
+                new { From = from.Date, To = to.Date.AddDays(1) });
+
+            return rows.ToList();
+        }
+
+        public async Task<List<SellerSalesSummary>> GetSalesBySellerAsync(DateTime from, DateTime to)
+        {
+            using var connection = await _connectionFactory.CreateConnectionAsync();
+
+            // Antal salg taelles paa sales-niveau, varer/omsaetning paa linje-niveau.
+            const string sql = @"
+                SELECT
+                    COALESCE(s.sellername, 'Ukendt') AS SellerName,
+                    COUNT(DISTINCT s.id)::int AS SaleCount,
+                    COALESCE(SUM(si.quantity), 0)::int AS TotalItemsSold,
+                    COALESCE(SUM(si.lineamount), 0)::numeric AS TotalRevenue
+                FROM sales s
+                JOIN saleitems si ON si.saleid = s.id
+                WHERE s.soldat >= @From AND s.soldat < @To
+                GROUP BY COALESCE(s.sellername, 'Ukendt')
+                ORDER BY TotalRevenue DESC";
+
+            var rows = await connection.QueryAsync<SellerSalesSummary>(
                 sql,
                 new { From = from.Date, To = to.Date.AddDays(1) });
 

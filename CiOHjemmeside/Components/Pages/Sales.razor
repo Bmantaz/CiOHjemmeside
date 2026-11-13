@@ -42,7 +42,10 @@
 
     <div class="cart-section">
         <h3>Indkøbskurv</h3>
-        <p class="seller-indicator">Aktiv sælger: <strong>@selectedRecipientName</strong></p>
+        <div class="seller-indicator">
+            <span>Aktiv sælger: <strong>@(string.IsNullOrWhiteSpace(selectedRecipientName) ? "Ingen valgt" : selectedRecipientName)</strong></span>
+            <button type="button" class="btn-switch-seller" @onclick="OpenSellerSelection">Skift sælger</button>
+        </div>
 
         <div class="show-picker">
             <label for="show-select">Show / spillested</label>
@@ -97,15 +100,26 @@
 
 @if (isSellerSelectionVisible)
 {
-    <div class="modal-backdrop"></div>
+    var hasSeller = !string.IsNullOrWhiteSpace(selectedRecipientName);
+    @* Første gang SKAL der vælges en sælger; derefter kan man lukke vælgeren igen. *@
+    <div class="modal-backdrop" @onclick="() => { if (hasSeller) isSellerSelectionVisible = false; }"></div>
     <div class="modal-content seller-modal">
-        <div class="modal-header"><h3>Åbn Shop</h3></div>
+        <div class="modal-header">
+            <h3>@(hasSeller ? "Skift sælger" : "Åbn Shop")</h3>
+            @if (hasSeller)
+            {
+                <button class="btn-close-modal" @onclick="() => isSellerSelectionVisible = false">×</button>
+            }
+        </div>
         <div class="modal-body text-center">
-            <p>Hvem er aktiv sælger i denne session?</p>
+            <p>Hvem står bag disken nu? Salg registreres på denne person, og MobilePay går til deres nummer.</p>
             <div class="seller-grid">
                 @foreach (var recipient in mobilePayRecipients)
                 {
-                    <button class="btn-seller-select" @onclick="() => SelectSellerAndOpenShop(recipient.Name)">@recipient.Name</button>
+                    <button class="btn-seller-select @(recipient.Name == selectedRecipientName ? "active" : "")"
+                            @onclick="() => SelectSellerAndOpenShop(recipient.Name)">
+                        @recipient.Name
+                    </button>
                 }
             </div>
         </div>
@@ -144,6 +158,7 @@
         </div>
         <div class="modal-body text-center">
             <h4>Total: @GetCartTotal().ToString("N2") kr.</h4>
+            <p class="seller-indicator">Sælger: <strong>@selectedRecipientName</strong></p>
             <div class="payment-methods">
                 <button class="btn-payment-method @(selectedPaymentMethod == "MobilePay" ? "active" : "")" @onclick="SetMobilePay">MobilePay</button>
                 <button class="btn-payment-method @(selectedPaymentMethod == "Cash" ? "active" : "")" @onclick="SetCash">Cash</button>
@@ -206,7 +221,6 @@
         new("Sebastian", "42 23 80 30"),
         new("Henrik", "53 68 86 76"),
         new("Kristofer", "21 66 48 20"),
-        new("Michal", "61 65 91 25"),
         new("Bjarke", "27 52 90 51")
     };
      
@@ -257,16 +271,36 @@
         try
         {
             var res = await SessionStorage.GetAsync<string>("CiO-ActiveSeller");
-            if (res.Success && !string.IsNullOrWhiteSpace(res.Value)) { selectedRecipientName = res.Value; isSellerSelectionVisible = false; }
-            else { isSellerSelectionVisible = true; }
+
+            // Kun gyldige sælgere; en gemt sælger der ikke længere er i bandet skal vælges om.
+            if (res.Success && mobilePayRecipients.Any(r => r.Name == res.Value))
+            {
+                selectedRecipientName = res.Value!;
+                isSellerSelectionVisible = false;
+            }
+            else
+            {
+                selectedRecipientName = string.Empty;
+                isSellerSelectionVisible = true;
+            }
         }
         catch { isSellerSelectionVisible = true; }
     }
 
+    private void OpenSellerSelection() => isSellerSelectionVisible = true;
+
     private async Task SelectSellerAndOpenShop(string name)
     {
+        var changed = !string.IsNullOrWhiteSpace(selectedRecipientName) && selectedRecipientName != name;
         selectedRecipientName = name;
         isSellerSelectionVisible = false;
+
+        if (changed)
+        {
+            saleErrorMessage = string.Empty;
+            saleStatusMessage = $"Aktiv sælger er nu {name}.";
+        }
+
         await SessionStorage.SetAsync("CiO-ActiveSeller", name);
     }
 
@@ -318,9 +352,9 @@
                 })
                 .ToList();
 
-            await SalesService.RecordSaleAsync(_currentUserId, saleItems, null, selectedConcertId);
+            await SalesService.RecordSaleAsync(_currentUserId, saleItems, null, selectedConcertId, selectedRecipientName);
 
-            saleStatusMessage = "Salg gennemført!";
+            saleStatusMessage = $"Salg gennemført – registreret på {selectedRecipientName}.";
             cart.Clear();
             isPaymentModalVisible = false;
             await LoadProductsAsync(); // Opdater lageret i UI fra DB

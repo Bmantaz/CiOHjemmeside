@@ -5,7 +5,14 @@ namespace CiOHjemmeside.Data.Services
     public interface ISalesService
     {
         Task<List<ProductGroup>> GetAllProductGroupsWithVariantsAsync();
-        Task RecordSaleAsync(int soldByUserId, IEnumerable<SaleItemInput> items, DateTime? soldAtUtc = null, int? concertId = null);
+        /// <param name="soldByUserId">Den indloggede konto der registrerede salget.</param>
+        /// <param name="sellerName">Bandmedlemmet der stod bag disken (aktiv saelger).</param>
+        Task RecordSaleAsync(int soldByUserId, IEnumerable<SaleItemInput> items, DateTime? soldAtUtc = null, int? concertId = null, string? sellerName = null);
+
+        /// <summary>
+        /// Opsummerer salg pr. saelger i en given periode. Salg uden saelger samles under "Ukendt".
+        /// </summary>
+        Task<List<SellerSalesSummary>> GetSalesBySellerAsync(DateTime from, DateTime to);
         Task<SalesStatisticsResult> GetStatisticsForDateAsync(DateTime date);
         Task<SalesStatisticsResult> GetStatisticsForRangeAsync(DateTime from, DateTime to);
         Task<List<DailySalesSummary>> GetDailySalesSummaryAsync(DateTime from, DateTime to);

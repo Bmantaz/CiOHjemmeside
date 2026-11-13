@@ -133,6 +133,53 @@ else
             }
         </div>
     </div>
+
+    <div class="card bg-dark text-white mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Salg pr. sælger</h5>
+            @if (!sellerSales.Any())
+            {
+                <p class="mb-0">Ingen salg registreret i denne måned.</p>
+            }
+            else
+            {
+                <table class="table table-dark table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Sælger</th>
+                            <th class="text-end">Antal salg</th>
+                            <th class="text-end">Antal solgt</th>
+                            <th class="text-end">Omsætning</th>
+                            <th style="width: 25%;">Andel</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var seller in sellerSales)
+                        {
+                            var share = sellerRevenueTotal <= 0 ? 0 : seller.TotalRevenue / sellerRevenueTotal * 100m;
+                            <tr>
+                                <td>@seller.SellerName</td>
+                                <td class="text-end">@seller.SaleCount</td>
+                                <td class="text-end">@seller.TotalItemsSold</td>
+                                <td class="text-end">@seller.TotalRevenue.ToString("N2") kr.</td>
+                                <td>
+                                    <div class="progress bg-secondary" style="height: 10px;"
+                                         role="img" aria-label="@($"{share:N0} % af månedens omsætning")">
+                                        <div class="progress-bar bg-light"
+                                             style="width: @share.ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (sellerSales.Any(s => s.SellerName == "Ukendt"))
+                {
+                    <p class="small text-secondary mt-2 mb-0">"Ukendt" er salg fra før sælgeren blev registreret.</p>
+                }
+            }
+        </div>
+    </div>
 }
 
 @if (!string.IsNullOrEmpty(errorMessage))
@@ -189,6 +236,8 @@ else if (statistics != null)
     private List<SalesStatisticRow> monthProductRecap = new();
     private List<VenueSalesSummary> venueSales = new();
     private decimal venueRevenueTotal;
+    private List<SellerSalesSummary> sellerSales = new();
+    private decimal sellerRevenueTotal;
     private int monthTotalItemsSold;
     private decimal monthTotalRevenue;
     private SalesStatisticsResult? statistics;
@@ -223,6 +272,9 @@ else if (statistics != null)
 
             venueSales = await SalesService.GetSalesByVenueAsync(from, to);
             venueRevenueTotal = venueSales.Sum(v => v.TotalRevenue);
+
+            sellerSales = await SalesService.GetSalesBySellerAsync(from, to);
+            sellerRevenueTotal = sellerSales.Sum(s => s.TotalRevenue);
         }
         catch (Exception ex)
         {
@@ -231,6 +283,8 @@ else if (statistics != null)
             monthProductRecap = new();
             venueSales = new();
             venueRevenueTotal = 0;
+            sellerSales = new();
+            sellerRevenueTotal = 0;
             monthTotalItemsSold = 0;
             monthTotalRevenue = 0;
         }

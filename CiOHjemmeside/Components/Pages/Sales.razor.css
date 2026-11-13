@@ -12,11 +12,36 @@
 }
 
 .seller-indicator {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     margin-bottom: 1rem;
     color: #bdbdbd;
     font-size: 0.95rem;
     font-family: Arial, Helvetica, sans-serif;
 }
+
+.payment-modal .seller-indicator {
+    justify-content: center;
+}
+
+.btn-switch-seller {
+    background: none;
+    border: 1px solid #555;
+    color: #ddd;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+}
+
+    .btn-switch-seller:hover {
+        border-color: #fff;
+        color: #fff;
+    }
 
 .show-picker {
     margin-bottom: 1rem;
@@ -380,6 +405,13 @@
     .btn-seller-select:hover {
         border-color: #fff;
         background: #2e2e2e;
+    }
+
+    .btn-seller-select.active {
+        border-color: #fff;
+        background: #fff;
+        color: #000;
+        font-weight: bold;
     }
 
 .qr-code {
