@@ -1,0 +1,30 @@
+@inject IEpkAccessService EpkAccessService
+@inject NavigationManager NavManager
+
+@*
+    Beskytter en EPK-underside. Indholdet (og dermed de signerede fil-links)
+    renderes KUN hvis brugeren har adgang. Ellers sendes man til /epk for at
+    indtaste koden, og derefter tilbage hertil.
+*@
+
+@if (hasAccess)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool hasAccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hasAccess = await EpkAccessService.HasAccessAsync();
+
+        if (!hasAccess)
+        {
+            var returnUrl = "/" + NavManager.ToBaseRelativePath(NavManager.Uri);
+            NavManager.NavigateTo($"/epk?returnUrl={Uri.EscapeDataString(returnUrl)}", replace: true);
+        }
+    }
+}

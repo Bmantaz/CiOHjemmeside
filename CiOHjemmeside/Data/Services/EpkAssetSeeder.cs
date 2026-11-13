@@ -3,7 +3,7 @@ using CiOHjemmeside.Data.Models;
 namespace CiOHjemmeside.Data.Services
 {
     /// <summary>
-    /// Importerer de eksisterende statiske EPK-filer fra wwwroot/EPK ind i databasen,
+    /// Importerer de oprindelige EPK-filer fra mappen EpkSeed ind i databasen,
     /// men KUN første gang (når epkassets-tabellen er tom). Derefter er databasen
     /// den eneste kilde til sandhed, og admin kan frit tilføje/redigere/slette.
     /// </summary>
@@ -32,14 +32,13 @@ namespace CiOHjemmeside.Data.Services
             new(EpkCategories.ImagesPosters, "White Stacked Not Transparent", "white-stacked-not-transparent.jpg")
         ];
 
-        public static async Task SeedAsync(IEpkAssetService assetService, string webRootPath, ILogger logger)
+        public static async Task SeedAsync(IEpkAssetService assetService, string sourceDirectory, ILogger logger)
         {
             if (await assetService.HasAnyAsync())
             {
                 return;
             }
 
-            var sourceDirectory = Path.Combine(webRootPath, "EPK");
             if (!Directory.Exists(sourceDirectory))
             {
                 logger.LogWarning("EPK seed skipped: {Directory} does not exist.", sourceDirectory);

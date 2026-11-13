@@ -48,26 +48,26 @@
 </div>
 
 @code {
+    // Saettes af EpkGate, naar en underside sender en bruger uden adgang hertil.
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    [Inject]
+    private NavigationManager NavManager { get; set; } = default!;
+
     private bool isAccessGranted;
     private string accessCode = string.Empty;
     private string accessError = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
+        isAccessGranted = await EpkAccessService.HasAccessAsync();
 
-        if (user.Identity?.IsAuthenticated == true && (user.IsInRole("Admin") || user.IsInRole("Member")))
+        if (isAccessGranted)
         {
-            isAccessGranted = true;
-            return;
+            GoToReturnUrl();
         }
-
-        isAccessGranted = await EpkAccessService.IsUnlockedAsync();
     }
-
-    [Inject]
-    private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
     private async Task UnlockEpk()
     {
@@ -77,10 +77,23 @@
         if (unlocked)
         {
             isAccessGranted = true;
+            GoToReturnUrl();
             return;
         }
 
         accessError = "Invalid access code.";
+    }
+
+    private void GoToReturnUrl()
+    {
+        // Kun lokale EPK-stier, saa returnUrl ikke kan bruges til at sende folk til andre sider.
+        if (!string.IsNullOrEmpty(ReturnUrl)
+            && ReturnUrl.StartsWith("/epk/", StringComparison.OrdinalIgnoreCase)
+            && !ReturnUrl.Contains("//")
+            && !ReturnUrl.Contains('\\'))
+        {
+            NavManager.NavigateTo(ReturnUrl, replace: true);
+        }
     }
 }
 

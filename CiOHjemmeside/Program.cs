@@ -47,6 +47,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<IEpkAccessService, EpkAccessService>();
 builder.Services.AddScoped<IEpkAssetService, EpkAssetService>();
+builder.Services.AddSingleton<IEpkFileUrlService, EpkFileUrlService>();
 // --- SLUT: Konfiguration af Data-lag (Fase 1) ---
 
 
@@ -60,7 +61,7 @@ using (var scope = app.Services.CreateScope())
 
     var assetService = scope.ServiceProvider.GetRequiredService<IEpkAssetService>();
     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("EpkAssetSeeder");
-    await EpkAssetSeeder.SeedAsync(assetService, app.Environment.WebRootPath, logger);
+    await EpkAssetSeeder.SeedAsync(assetService, Path.Combine(app.Environment.ContentRootPath, "EpkSeed"), logger);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -70,6 +71,20 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+// EPK-filerne laa tidligere offentligt i wwwroot/EPK. Bloker stien, hvis en gammel
+// deploy har efterladt filerne paa serveren. Blazor-ruterne (/epk/riders osv.) har
+// ingen filendelse og rammes derfor ikke.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    if (path.StartsWith("/EPK/", StringComparison.OrdinalIgnoreCase) && Path.HasExtension(path))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
+
 app.UseStaticFiles();
 app.UseAntiforgery();
 
@@ -80,17 +95,28 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Serverer EPK-filer og thumbnails direkte fra databasen.
-app.MapGet("/epk-file/{id:int}", async (int id, IEpkAssetService assetService) =>
+// Serverer EPK-filer og thumbnails direkte fra databasen. Kraever et signeret link (?t=),
+// som kun udstedes til brugere med EPK-adgang. Uden gyldigt link: 404.
+app.MapGet("/epk-file/{id:int}", async (int id, string? t, IEpkAssetService assetService, IEpkFileUrlService epkUrls) =>
 {
+    if (!epkUrls.IsValid(EpkFileUrlService.FileKind, id, t))
+    {
+        return Results.NotFound();
+    }
+
     var file = await assetService.GetFileAsync(id);
     return file is null
         ? Results.NotFound()
         : Results.File(file.Content, file.ContentType, file.FileName);
 });
 
-app.MapGet("/epk-thumb/{id:int}", async (int id, IEpkAssetService assetService) =>
+app.MapGet("/epk-thumb/{id:int}", async (int id, string? t, IEpkAssetService assetService, IEpkFileUrlService epkUrls) =>
 {
+    if (!epkUrls.IsValid(EpkFileUrlService.ThumbKind, id, t))
+    {
+        return Results.NotFound();
+    }
+
     var thumb = await assetService.GetThumbnailAsync(id);
     return thumb is null
         ? Results.NotFound()

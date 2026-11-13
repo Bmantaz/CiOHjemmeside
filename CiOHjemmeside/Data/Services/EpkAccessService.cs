@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Configuration;
 
@@ -10,12 +11,29 @@ namespace CiOHjemmeside.Data.Services
         private readonly ProtectedSessionStorage _sessionStorage;
         private readonly IConfiguration _configuration;
         private readonly ILogger<EpkAccessService> _logger;
+        private readonly AuthenticationStateProvider _authStateProvider;
 
-        public EpkAccessService(ProtectedSessionStorage sessionStorage, IConfiguration configuration, ILogger<EpkAccessService> logger)
+        public EpkAccessService(
+            ProtectedSessionStorage sessionStorage,
+            IConfiguration configuration,
+            ILogger<EpkAccessService> logger,
+            AuthenticationStateProvider authStateProvider)
         {
             _sessionStorage = sessionStorage;
             _configuration = configuration;
             _logger = logger;
+            _authStateProvider = authStateProvider;
+        }
+
+        public async Task<bool> HasAccessAsync()
+        {
+            var user = (await _authStateProvider.GetAuthenticationStateAsync()).User;
+            if (user.Identity?.IsAuthenticated == true && (user.IsInRole("Admin") || user.IsInRole("Member")))
+            {
+                return true;
+            }
+
+            return await IsUnlockedAsync();
         }
 
         public async Task<bool> IsUnlockedAsync()

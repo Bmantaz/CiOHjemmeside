@@ -2,6 +2,7 @@
 @using CiOHjemmeside.Data.Services
 @using Microsoft.AspNetCore.Components.Forms
 @inject IEpkAssetService EpkAssetService
+@inject IEpkFileUrlService EpkFileUrls
 
 @* 
     Genbrugelig EPK-sektion. Viser altid indholdet for besøgende,
@@ -25,7 +26,7 @@ else if (Gallery)
                 <div class="epk-asset-row">
                     @if (asset.HasThumbnail)
                     {
-                        <img class="epk-mini-thumb" src="@($"/epk-thumb/{asset.Id}")" alt="@asset.Title"
+                        <img class="epk-mini-thumb" src="@EpkFileUrls.ThumbUrl(asset.Id)" alt="@asset.Title"
                              width="110" height="110" style="width:110px;height:110px;" />
                     }
                     <div>
@@ -155,7 +156,8 @@ else
         assets = (await EpkAssetService.GetByCategoryAsync(Category)).ToList();
     }
 
-    private static string FileUrl(EpkAsset asset) => $"/epk-file/{asset.Id}";
+    // Signeret link; virker kun fordi denne komponent altid ligger inde i en EpkGate.
+    private string FileUrl(EpkAsset asset) => EpkFileUrls.FileUrl(asset.Id);
 
     private void OnNewFileSelected(InputFileChangeEventArgs e)
     {
