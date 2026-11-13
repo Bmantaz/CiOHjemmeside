@@ -4,86 +4,120 @@
 @inject IEpkAssetService EpkAssetService
 @inject IEpkFileUrlService EpkFileUrls
 
-@* 
+@*
     Genbrugelig EPK-sektion. Viser altid indholdet for besøgende,
     og tilføjer opret/rediger/slet-kontroller når brugeren er Admin.
+    Styles ligger i wwwroot/epk.css.
 *@
+
+<AuthorizeView Roles="Admin" Context="statusCtx">
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="epk-status epk-ok">@message</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <p class="epk-status epk-error">@error</p>
+    }
+</AuthorizeView>
 
 @if (assets is null)
 {
-    <p class="epk-lead">Indlæser...</p>
+    <p class="epk-empty">Loading...</p>
 }
 else if (!assets.Any())
 {
-    <p class="epk-lead">Intet indhold endnu.</p>
+    <p class="epk-empty">Nothing here yet.</p>
 }
 else if (Gallery)
 {
-    <div class="epk-gallery-grid">
+    <div class="epk-gallery">
         @foreach (var asset in assets)
         {
-            <section class="epk-section">
-                <div class="epk-asset-row">
+            var bg = GetBackground(asset);
+            <article class="epk-card">
+                <div class="epk-stage epk-bg-@bg">
                     @if (asset.HasThumbnail)
                     {
-                        <img class="epk-mini-thumb" src="@EpkFileUrls.ThumbUrl(asset.Id)" alt="@asset.Title"
-                             width="110" height="110" style="width:110px;height:110px;" />
+                        <img src="@EpkFileUrls.ThumbUrl(asset.Id)" alt="@asset.Title" loading="lazy" />
                     }
-                    <div>
-                        <h2>@asset.Title</h2>
-                        <div class="epk-actions">
-                            <a class="epk-link-button" href="@FileUrl(asset)" target="_blank" rel="noopener noreferrer">Open</a>
-                            <a class="epk-link-button" href="@FileUrl(asset)" download="@asset.FileName">Download</a>
-                        </div>
+                    else
+                    {
+                        <span class="epk-stage-fallback">@FileKind(asset)</span>
+                    }
+
+                    <div class="epk-swatches" role="group" aria-label="Preview background">
+                        @foreach (var option in BackgroundOptions)
+                        {
+                            <button type="button"
+                                    class="epk-swatch epk-bg-@option.Key @(bg == option.Key ? "active" : "")"
+                                    title="@option.Label background"
+                                    aria-label="@option.Label background"
+                                    aria-pressed="@(bg == option.Key ? "true" : "false")"
+                                    @onclick="() => backgrounds[asset.Id] = option.Key"></button>
+                        }
                     </div>
                 </div>
-                <AuthorizeView Roles="Admin" Context="adminCtx">
-                    @AdminRow(asset)
-                </AuthorizeView>
-            </section>
+
+                <div class="epk-card-body">
+                    <h2 class="epk-card-title">@asset.Title</h2>
+                    <span class="epk-row-meta">@FileKind(asset) · @FormatSize(asset.FileSize)</span>
+
+                    <div class="epk-card-actions">
+                        <a class="epk-btn epk-btn-outline" href="@FileUrl(asset)" target="_blank" rel="noopener noreferrer">
+                            View <span class="epk-arrow">&#8599;</span>
+                        </a>
+                        <a class="epk-btn epk-btn-primary" href="@FileUrl(asset)" download="@asset.FileName">Download</a>
+                    </div>
+
+                    <AuthorizeView Roles="Admin" Context="adminCtx">
+                        @AdminRow(asset)
+                    </AuthorizeView>
+                </div>
+            </article>
         }
     </div>
 }
 else
 {
-    @foreach (var asset in assets)
-    {
-        <section class="epk-section">
-            <h2>@asset.Title</h2>
-            <div class="epk-actions">
-                <a class="epk-link-button" href="@FileUrl(asset)" target="_blank" rel="noopener noreferrer">Open</a>
-                <a class="epk-link-button" href="@FileUrl(asset)" download="@asset.FileName">Download</a>
+    <div class="epk-frame">
+        @foreach (var (asset, index) in assets.Select((a, i) => (a, i)))
+        {
+            <div class="epk-row">
+                <span class="epk-row-index">@((index + 1).ToString("00"))</span>
+                <div>
+                    <span class="epk-row-title">@asset.Title</span>
+                    <span class="epk-row-meta">@FileKind(asset) · @FormatSize(asset.FileSize)</span>
+                </div>
+                <div class="epk-row-actions">
+                    <a class="epk-btn epk-btn-outline" href="@FileUrl(asset)" target="_blank" rel="noopener noreferrer">
+                        View <span class="epk-arrow">&#8599;</span>
+                    </a>
+                    <a class="epk-btn epk-btn-primary" href="@FileUrl(asset)" download="@asset.FileName">Download</a>
+                </div>
+
+                <AuthorizeView Roles="Admin" Context="adminCtx">
+                    <div class="epk-row-admin">@AdminRow(asset)</div>
+                </AuthorizeView>
             </div>
-            <AuthorizeView Roles="Admin" Context="adminCtx">
-                @AdminRow(asset)
-            </AuthorizeView>
-        </section>
-    }
+        }
+    </div>
 }
 
 <AuthorizeView Roles="Admin" Context="uploadCtx">
-    <section class="epk-section epk-admin-box">
-        <h2>Tilføj nyt indhold</h2>
+    <section class="epk-upload">
+        <h2>Tilføj nyt indhold <span class="epk-badge">ADMIN</span></h2>
 
-        @if (!string.IsNullOrWhiteSpace(message))
-        {
-            <p class="epk-lead">@message</p>
-        }
-        @if (!string.IsNullOrWhiteSpace(error))
-        {
-            <p class="epk-error">@error</p>
-        }
-
-        <div class="epk-actions">
-            <input class="epk-code-input" @bind="newTitle" placeholder="Titel" />
+        <div class="epk-form">
+            <input class="epk-input" @bind="newTitle" placeholder="Titel" aria-label="Titel" />
             <InputFile OnChange="OnNewFileSelected" accept="@AcceptFilter" />
-            <button class="epk-link-button" disabled="@(isBusy || newFile is null)" @onclick="UploadNew">
+            <button class="epk-btn epk-btn-primary" disabled="@(isBusy || newFile is null)" @onclick="UploadNew">
                 @(isBusy ? "Uploader..." : "Upload")
             </button>
         </div>
         @if (newFile is not null)
         {
-            <p class="epk-lead">Valgt: @newFile.Name (@FormatSize(newFile.Size))</p>
+            <p class="epk-admin-meta">Valgt: @newFile.Name (@FormatSize(newFile.Size))</p>
         }
     </section>
 </AuthorizeView>
@@ -95,48 +129,52 @@ else
     /// </summary>
     private RenderFragment AdminRow(EpkAsset asset) => __builder =>
     {
-        <div class="epk-admin-row">
+        <div class="epk-admin">
             @if (editingId == asset.Id)
             {
-                <div class="epk-actions">
-                    <input class="epk-code-input" @bind="editingTitle" placeholder="Titel" />
-                    <button class="epk-link-button" @onclick="() => SaveTitle(asset)">Gem</button>
-                    <button class="epk-link-button" @onclick="CancelEdit">Annuller</button>
-                </div>
+                <input class="epk-admin-input" @bind="editingTitle" placeholder="Titel" />
+                <button class="epk-admin-btn" @onclick="() => SaveTitle(asset)">Gem</button>
+                <button class="epk-admin-btn" @onclick="CancelEdit">Annuller</button>
             }
             else if (confirmDeleteId == asset.Id)
             {
-                <div class="epk-actions">
-                    <span class="epk-error">Slet "@asset.Title"?</span>
-                    <button class="epk-link-button" @onclick="() => Delete(asset)">Ja, slet</button>
-                    <button class="epk-link-button" @onclick="() => confirmDeleteId = null">Fortryd</button>
-                </div>
+                <span class="epk-admin-note">Slet "@asset.Title"?</span>
+                <button class="epk-admin-btn danger" @onclick="() => Delete(asset)">Ja, slet</button>
+                <button class="epk-admin-btn" @onclick="() => confirmDeleteId = null">Fortryd</button>
             }
             else
             {
-                <div class="epk-actions">
-                    <button class="epk-link-button" @onclick="() => StartEdit(asset)">Omdøb</button>
-                    <button class="epk-link-button" disabled="@isBusy" @onclick="() => Move(asset, -1)">↑</button>
-                    <button class="epk-link-button" disabled="@isBusy" @onclick="() => Move(asset, 1)">↓</button>
-                    <button class="epk-link-button" @onclick="() => confirmDeleteId = asset.Id">Slet</button>
-                    <label class="epk-link-button">
-                        Udskift fil
-                        <InputFile OnChange="@(e => ReplaceFile(asset, e))" accept="@AcceptFilter" style="display:none" />
-                    </label>
-                </div>
-                <p class="epk-lead epk-asset-meta">@asset.FileName — @FormatSize(asset.FileSize)</p>
+                <button class="epk-admin-btn" @onclick="() => StartEdit(asset)">Omdøb</button>
+                <button class="epk-admin-btn" disabled="@isBusy" @onclick="() => Move(asset, -1)" title="Flyt op">&#8593;</button>
+                <button class="epk-admin-btn" disabled="@isBusy" @onclick="() => Move(asset, 1)" title="Flyt ned">&#8595;</button>
+                <label class="epk-admin-btn">
+                    Udskift fil
+                    <InputFile OnChange="@(e => ReplaceFile(asset, e))" accept="@AcceptFilter" style="display:none" />
+                </label>
+                <button class="epk-admin-btn danger" @onclick="() => confirmDeleteId = asset.Id">Slet</button>
+                <p class="epk-admin-meta">@asset.FileName</p>
             }
         </div>
     };
 
     [Parameter, EditorRequired] public string Category { get; set; } = string.Empty;
 
-    /// <summary>Vis som billedgalleri med thumbnails i stedet for en simpel liste.</summary>
+    /// <summary>Vis som billedgalleri med previews i stedet for en liste.</summary>
     [Parameter] public bool Gallery { get; set; }
 
     private const long MaxFileSize = 10 * 1024 * 1024;
 
+    // Baggrunde man kan se et billede på. Især nyttigt for transparente logoer.
+    private static readonly (string Key, string Label)[] BackgroundOptions =
+    {
+        ("dark", "Dark"),
+        ("light", "Light"),
+        ("red", "Red"),
+        ("checker", "Transparent")
+    };
+
     private List<EpkAsset>? assets;
+    private readonly Dictionary<int, string> backgrounds = new();
     private IBrowserFile? newFile;
     private string newTitle = string.Empty;
     private string message = string.Empty;
@@ -158,6 +196,35 @@ else
 
     // Signeret link; virker kun fordi denne komponent altid ligger inde i en EpkGate.
     private string FileUrl(EpkAsset asset) => EpkFileUrls.FileUrl(asset.Id);
+
+    /// <summary>
+    /// Startbaggrund: sorte logoer vises på lys baggrund, alt andet på mørk,
+    /// så intet logo "forsvinder". Besøgende kan selv skifte.
+    /// </summary>
+    private string GetBackground(EpkAsset asset)
+    {
+        if (backgrounds.TryGetValue(asset.Id, out var chosen))
+        {
+            return chosen;
+        }
+
+        var name = $"{asset.Title} {asset.FileName}";
+        var isBlackArtwork = name.Contains("black", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("sort", StringComparison.OrdinalIgnoreCase);
+
+        return isBlackArtwork ? "light" : "dark";
+    }
+
+    private static string FileKind(EpkAsset asset)
+    {
+        var extension = Path.GetExtension(asset.FileName).TrimStart('.').ToUpperInvariant();
+        if (!string.IsNullOrEmpty(extension))
+        {
+            return extension == "JPEG" ? "JPG" : extension;
+        }
+
+        return asset.IsImage ? "Image" : "File";
+    }
 
     private void OnNewFileSelected(InputFileChangeEventArgs e)
     {

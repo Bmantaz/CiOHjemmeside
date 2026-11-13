@@ -2,16 +2,15 @@
 @layout Layout.MainLayout
 @rendermode InteractiveServer
 
-<link rel="stylesheet" href="Components/Pages/Epk.razor.css" />
-
 <PageTitle>EPK - Band Pictures</PageTitle>
 
 <EpkGate>
-<div class="epk-wrapper">
-    <h1>Band Picture</h1>
+    <div class="epk">
+        <EpkHeader Title="Band pictures" ParentTitle="Images" ParentHref="/epk/images"
+                   Lead="Press photos in full resolution. Free to use for promotion of Cursed Into Oblivion." />
 
-    <EpkAssetManager Category="@EpkCategories.ImagesBand" Gallery="true" />
+        <EpkAssetManager Category="@EpkCategories.ImagesBand" Gallery="true" />
 
-    <a class="epk-link" href="/epk/images">← Back to Images</a>
-</div>
+        <a class="epk-back" href="/epk/images">&#8592; Back to images</a>
+    </div>
 </EpkGate>

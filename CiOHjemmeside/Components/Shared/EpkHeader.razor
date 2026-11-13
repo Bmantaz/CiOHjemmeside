@@ -1,0 +1,26 @@
+@*
+    Faelles sidehoved til alle EPK-sider: brødkrumme, stor titel og den roede
+    accent-streg fra "Upcoming shows" paa forsiden.
+*@
+
+<p class="epk-kicker">
+    <a href="/epk">Electronic Press Kit</a>
+    @if (!string.IsNullOrEmpty(ParentTitle) && !string.IsNullOrEmpty(ParentHref))
+    {
+        <span class="epk-sep">/</span>
+        <a href="@ParentHref">@ParentTitle</a>
+    }
+</p>
+<h1 class="epk-title">@Title</h1>
+<div class="epk-rule"></div>
+@if (!string.IsNullOrWhiteSpace(Lead))
+{
+    <p class="epk-lead">@Lead</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Lead { get; set; }
+    [Parameter] public string? ParentTitle { get; set; }
+    [Parameter] public string? ParentHref { get; set; }
+}

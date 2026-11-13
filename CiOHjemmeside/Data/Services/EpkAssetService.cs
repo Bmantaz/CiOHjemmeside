@@ -1,7 +1,9 @@
 using CiOHjemmeside.Data.Models;
 using Dapper;
 using SixLabors.ImageSharp;
+using Microsoft.Extensions.Caching.Memory;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 
 namespace CiOHjemmeside.Data.Services
@@ -10,11 +12,16 @@ namespace CiOHjemmeside.Data.Services
     {
         private const int ThumbnailSize = 220;
 
-        private readonly IDbConnectionFactory _connectionFactory;
+        // Previews i galleriet vises op til ~400px brede; 640px giver skarpe billeder paa retina.
+        private const int PreviewSize = 640;
 
-        public EpkAssetService(IDbConnectionFactory connectionFactory)
+        private readonly IDbConnectionFactory _connectionFactory;
+        private readonly IMemoryCache _cache;
+
+        public EpkAssetService(IDbConnectionFactory connectionFactory, IMemoryCache cache)
         {
             _connectionFactory = connectionFactory;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<EpkAsset>> GetByCategoryAsync(string category)
@@ -52,16 +59,75 @@ namespace CiOHjemmeside.Data.Services
             return await connection.QuerySingleOrDefaultAsync<EpkAssetFile>(sql, new { Id = id });
         }
 
+        /// <summary>
+        /// Returnerer et skarpt preview (maks 640px, WebP med transparens) til galleriet.
+        /// Genereres fra originalfilen og caches i hukommelsen; cache-noeglen indeholder
+        /// uploadtidspunktet, saa en udskiftet fil automatisk faar et nyt preview.
+        /// Den gemte 220px-thumbnail i databasen bruges som fallback.
+        /// </summary>
         public async Task<EpkAssetFile?> GetThumbnailAsync(int id)
         {
             using var connection = await _connectionFactory.CreateConnectionAsync();
 
-            var sql = @"
-                SELECT thumbnail AS content, 'image/png' AS contenttype, filename
-                FROM epkassets
-                WHERE id = @Id AND thumbnail IS NOT NULL";
+            var uploadedAt = await connection.QuerySingleOrDefaultAsync<DateTime?>(
+                "SELECT uploadedat FROM epkassets WHERE id = @Id AND thumbnail IS NOT NULL",
+                new { Id = id });
 
-            return await connection.QuerySingleOrDefaultAsync<EpkAssetFile>(sql, new { Id = id });
+            if (uploadedAt is null)
+            {
+                return null;
+            }
+
+            var cacheKey = $"epk-preview:{id}:{uploadedAt.Value.Ticks}";
+            if (_cache.TryGetValue(cacheKey, out EpkAssetFile? cached) && cached is not null)
+            {
+                return cached;
+            }
+
+            var original = await connection.QuerySingleOrDefaultAsync<EpkAssetFile>(
+                "SELECT content, contenttype, filename FROM epkassets WHERE id = @Id",
+                new { Id = id });
+
+            var preview = original is null ? null : CreatePreview(original);
+
+            preview ??= await connection.QuerySingleOrDefaultAsync<EpkAssetFile>(
+                "SELECT thumbnail AS content, 'image/png' AS contenttype, filename FROM epkassets WHERE id = @Id",
+                new { Id = id });
+
+            if (preview is not null)
+            {
+                _cache.Set(cacheKey, preview, new MemoryCacheEntryOptions { SlidingExpiration = TimeSpan.FromDays(1) });
+            }
+
+            return preview;
+        }
+
+        private static EpkAssetFile? CreatePreview(EpkAssetFile original)
+        {
+            try
+            {
+                using var image = Image.Load(original.Content);
+
+                image.Mutate(x => x.AutoOrient().Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new Size(PreviewSize, PreviewSize)
+                }));
+
+                using var output = new MemoryStream();
+                image.Save(output, new WebpEncoder { Quality = 88 });
+
+                return new EpkAssetFile
+                {
+                    Content = output.ToArray(),
+                    ContentType = "image/webp",
+                    FileName = original.FileName
+                };
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public async Task<int> AddAsync(string category, string title, string fileName, string contentType, byte[] content)

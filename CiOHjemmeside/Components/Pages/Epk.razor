@@ -3,47 +3,55 @@
 @rendermode InteractiveServer
 @inject IEpkAccessService EpkAccessService
 
-<link rel="stylesheet" href="Components/Pages/Epk.razor.css" />
-
 <PageTitle>EPK - Cursed Into Oblivion</PageTitle>
 
-<div class="epk-wrapper">
+<div class="epk">
     @if (!isAccessGranted)
     {
-        <section class="epk-section">
-            <h2>EPK Access</h2>
-            <p>Enter access code to continue.</p>
-            <div class="epk-actions">
-                <input class="epk-code-input" type="password" @bind="accessCode" placeholder="Access code" />
-                <button class="epk-link-button epk-unlock-button" @onclick="UnlockEpk">Unlock</button>
-            </div>
+        <p class="epk-kicker">Electronic Press Kit</p>
+        <h1 class="epk-title">Press access</h1>
+        <div class="epk-rule"></div>
+        <p class="epk-lead">For promoters, venues and press. Enter the access code you received from the band.</p>
+
+        <div class="epk-frame epk-lock">
+            <form class="epk-form" @onsubmit="UnlockEpk" @onsubmit:preventDefault>
+                <input class="epk-input epk-code-input" type="password" @bind="accessCode"
+                       placeholder="Access code" autocomplete="off" aria-label="Access code" />
+                <button type="submit" class="epk-btn epk-btn-primary epk-unlock-button">
+                    Unlock <span class="epk-arrow">&#8594;</span>
+                </button>
+            </form>
             @if (!string.IsNullOrWhiteSpace(accessError))
             {
                 <p class="epk-error">@accessError</p>
             }
-        </section>
+            <p class="epk-contact">
+                Need access? <a href="mailto:Cursedintooblivion00@gmail.com">Cursedintooblivion00@gmail.com</a>
+            </p>
+        </div>
     }
     else
     {
-    <h1>Electronic Press Kit</h1>
-    <p class="epk-lead">Select a section below.</p>
+        <p class="epk-kicker">Cursed Into Oblivion</p>
+        <h1 class="epk-title">Electronic Press Kit</h1>
+        <div class="epk-rule"></div>
+        <p class="epk-lead">Everything promoters, venues and press need – riders, press texts, photos and logos.</p>
 
-    <div class="epk-nav-grid">
-        <a class="epk-nav-card" href="/epk/riders">
-            <h2>Riders</h2>
-            <p>Technical + hospitality files.</p>
-        </a>
-
-        <a class="epk-nav-card" href="/epk/press">
-            <h2>Press</h2>
-            <p>English and Danish press versions.</p>
-        </a>
-
-        <a class="epk-nav-card" href="/epk/images">
-            <h2>Images</h2>
-            <p>Band photos and poster/logo assets.</p>
-        </a>
-    </div>
+        <div class="epk-frame">
+            @foreach (var (section, index) in sections.Select((s, i) => (s, i)))
+            {
+                <a class="epk-row epk-row-link" href="@section.Href">
+                    <span class="epk-row-index">@((index + 1).ToString("00"))</span>
+                    <span>
+                        <span class="epk-row-title">@section.Title</span>
+                        <span class="epk-row-meta">@section.Description</span>
+                    </span>
+                    <span class="epk-row-actions">
+                        <span class="epk-btn epk-btn-outline">Open <span class="epk-arrow">&#8594;</span></span>
+                    </span>
+                </a>
+            }
+        </div>
     }
 </div>
 
@@ -54,6 +62,13 @@
 
     [Inject]
     private NavigationManager NavManager { get; set; } = default!;
+
+    private static readonly (string Title, string Description, string Href)[] sections =
+    {
+        ("Riders", "Technical + hospitality rider", "/epk/riders"),
+        ("Press", "Press text in English and Danish", "/epk/press"),
+        ("Images", "Band photos, logos and poster artwork", "/epk/images")
+    };
 
     private bool isAccessGranted;
     private string accessCode = string.Empty;
@@ -96,4 +111,3 @@
         }
     }
 }
-

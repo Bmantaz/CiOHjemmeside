@@ -2,27 +2,35 @@
 @layout Layout.MainLayout
 @rendermode InteractiveServer
 
-<link rel="stylesheet" href="Components/Pages/Epk.razor.css" />
-
 <PageTitle>EPK - Images</PageTitle>
 
 <EpkGate>
-<div class="epk-wrapper">
-    <h1>Images</h1>
-    <p class="epk-lead">Choose image category.</p>
+    <div class="epk">
+        <EpkHeader Title="Images" Lead="High-resolution band photos and logo / poster artwork." />
 
-    <div class="epk-nav-grid">
-        <a class="epk-nav-card" href="/epk/images/band">
-            <h2>Band Picture</h2>
-            <p>Band picture and band picture with logo.</p>
-        </a>
+        <div class="epk-frame">
+            <a class="epk-row epk-row-link" href="/epk/images/band">
+                <span class="epk-row-index">01</span>
+                <span>
+                    <span class="epk-row-title">Band pictures</span>
+                    <span class="epk-row-meta">Press photos, with and without logo</span>
+                </span>
+                <span class="epk-row-actions">
+                    <span class="epk-btn epk-btn-outline">Open <span class="epk-arrow">&#8594;</span></span>
+                </span>
+            </a>
+            <a class="epk-row epk-row-link" href="/epk/images/posters">
+                <span class="epk-row-index">02</span>
+                <span>
+                    <span class="epk-row-title">Logos &amp; posters</span>
+                    <span class="epk-row-meta">Headers, stacked logos and spear marks</span>
+                </span>
+                <span class="epk-row-actions">
+                    <span class="epk-btn epk-btn-outline">Open <span class="epk-arrow">&#8594;</span></span>
+                </span>
+            </a>
+        </div>
 
-        <a class="epk-nav-card" href="/epk/images/posters">
-            <h2>Poster Pictures</h2>
-            <p>All other image assets.</p>
-        </a>
+        <a class="epk-back" href="/epk">&#8592; Back to press kit</a>
     </div>
-
-    <a class="epk-link" href="/epk">← Back to EPK</a>
-</div>
 </EpkGate>

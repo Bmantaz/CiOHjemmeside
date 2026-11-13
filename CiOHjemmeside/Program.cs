@@ -48,6 +48,7 @@ builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<IEpkAccessService, EpkAccessService>();
 builder.Services.AddScoped<IEpkAssetService, EpkAssetService>();
 builder.Services.AddSingleton<IEpkFileUrlService, EpkFileUrlService>();
+builder.Services.AddMemoryCache(); // EPK-previews caches i hukommelsen
 // --- SLUT: Konfiguration af Data-lag (Fase 1) ---
 
 

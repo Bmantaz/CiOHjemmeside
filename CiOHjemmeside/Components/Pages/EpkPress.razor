@@ -2,17 +2,14 @@
 @layout Layout.MainLayout
 @rendermode InteractiveServer
 
-<link rel="stylesheet" href="Components/Pages/Epk.razor.css" />
-
 <PageTitle>EPK - Press</PageTitle>
 
 <EpkGate>
-<div class="epk-wrapper">
-    <h1>Press</h1>
-    <p class="epk-lead">Select language version.</p>
+    <div class="epk">
+        <EpkHeader Title="Press" Lead="Official press text in English and Danish." />
 
-    <EpkAssetManager Category="@EpkCategories.Press" />
+        <EpkAssetManager Category="@EpkCategories.Press" />
 
-    <a class="epk-link" href="/epk">← Back to EPK</a>
-</div>
+        <a class="epk-back" href="/epk">&#8592; Back to press kit</a>
+    </div>
 </EpkGate>

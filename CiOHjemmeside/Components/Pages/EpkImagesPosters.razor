@@ -2,16 +2,15 @@
 @layout Layout.MainLayout
 @rendermode InteractiveServer
 
-<link rel="stylesheet" href="Components/Pages/Epk.razor.css" />
-
-<PageTitle>EPK - Poster Pictures</PageTitle>
+<PageTitle>EPK - Logos &amp; Posters</PageTitle>
 
 <EpkGate>
-<div class="epk-wrapper">
-    <h1>Poster Pictures</h1>
+    <div class="epk">
+        <EpkHeader Title="Logos & posters" ParentTitle="Images" ParentHref="/epk/images"
+                   Lead="Logos and artwork for posters and flyers. Use the dots on each image to preview it on a dark, light, red or transparent background." />
 
-    <EpkAssetManager Category="@EpkCategories.ImagesPosters" Gallery="true" />
+        <EpkAssetManager Category="@EpkCategories.ImagesPosters" Gallery="true" />
 
-    <a class="epk-link" href="/epk/images">← Back to Images</a>
-</div>
+        <a class="epk-back" href="/epk/images">&#8592; Back to images</a>
+    </div>
 </EpkGate>
